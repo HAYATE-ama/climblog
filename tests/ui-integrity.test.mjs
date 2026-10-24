@@ -35,3 +35,19 @@ test("max training form includes the ground lift and left/right hand choices", (
   assert.match(html, /id="liftHand"[\s\S]*value="right"[\s\S]*value="left"/);
   assert.match(app, /maxType==='singleHandLift'\?'片手リフト（地面から）'/);
 });
+
+
+test("mobile main navigation is explicit, delegated, and returns to the top", () => {
+  assert.match(html, /id="mainNavigation"/);
+  for (const view of ["calendar", "stats", "projects"]) assert.match(html, new RegExp('data-view="' + view + '"'));
+  assert.match(app, /#mainNavigation[\s\S]*window\.scrollTo\(0,0\)/);
+  assert.match(html, /\[hidden\]\{display:none!important\}/);
+});
+
+test("past records provide individual edit and confirmed delete controls", () => {
+  assert.match(app, /data-delete-record="\$\{r\.id\}"/);
+  assert.match(app, /data-edit-record="\$\{r\.id\}"/);
+  assert.match(app, /data-delete-record/);
+  assert.match(app, /この操作は取り消せません/);
+  assert.match(app, /localStorage\.setItem\("climbLogRecords",JSON\.stringify\(records\)\)/);
+});

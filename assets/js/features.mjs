@@ -28,6 +28,10 @@ export function getMaxTestSeries(records) {
   });
 }
 
+export function removeRecord(records, id) {
+  return records.filter(record => record.id !== id);
+}
+
 export function calculateGoalProgress(records, goals, now = new Date()) {
   const ym = [now.getFullYear(), String(now.getMonth() + 1).padStart(2, "0")].join("-");
   const year = String(now.getFullYear());
