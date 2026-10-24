@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { searchRecords, getMaxTestSeries, calculateGoalProgress, summarizeProject, buildCloudPayload, validateMaxTest, calculateTotalLoad } from "../assets/js/features.mjs";
+import { searchRecords, getMaxTestSeries, calculateGoalProgress, summarizeProject, buildCloudPayload, validateMaxTest, calculateTotalLoad, removeRecord } from "../assets/js/features.mjs";
 
 test("search filters by text and activity type, newest records first", () => {
   const rows = [{ date: "2026-04-01", kind: "gym", place: "Alpha", grade: "6級" }, { date: "2026-04-03", kind: "outdoor", place: "御岳", grade: "1級" }, { date: "2026-04-02", kind: "gym", place: "御岳ジム", grade: "5級" }];
@@ -53,4 +53,11 @@ test("max test validation requires hangboard conditions and rejects negative loa
 test("total load combines added weight and optional bodyweight", () => {
   assert.equal(calculateTotalLoad("12.5", "63.2"), 75.7);
   assert.equal(calculateTotalLoad("12.5", ""), 12.5);
+});
+
+
+test("removeRecord deletes only the selected record and leaves other history intact", () => {
+  const rows = [{ id: "old-1", date: "2024-01-01" }, { id: "old-2", date: "2024-01-02" }, { id: "recent", date: "2026-10-24" }];
+  assert.deepEqual(removeRecord(rows, "old-1"), [rows[1], rows[2]]);
+  assert.equal(removeRecord(rows, "missing").length, 3);
 });
