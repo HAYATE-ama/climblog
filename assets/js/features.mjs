@@ -1,3 +1,6 @@
+import { extraCollections,readCollection } from './account-storage.mjs';
+import { normalizeNarrativeGoals } from './goal-model.mjs';
+import { maxConditionKey, measurementValue } from './strength-insights.mjs';
 export function searchRecords(records, query = "", kind = "all") {
   const term = String(query).trim().toLocaleLowerCase();
   return records.filter(record => {
@@ -9,48 +12,23 @@ export function searchRecords(records, query = "", kind = "all") {
 }
 
 export function getMaxTestSeries(records) {
-  const tests = records.filter(record => record.trainingMode === "maxTest" && record.maxType && Number.isFinite(Number(record.addedWeightKg)));
-  const grouped = new Map();
-  for (const record of tests) {
-    const key = [record.maxType, record.gripType || "", record.edgeDepthMm || "", record.maxType === "singleHandLift" ? (record.liftHand || "right") : ""].join("|");
-    if (!grouped.has(key)) grouped.set(key, []);
-    grouped.get(key).push(record);
+  const grouped=new Map();
+  for(const record of records){
+    if(record.trainingMode!=='maxTest'||!record.maxType||record.addedWeightKg==null||record.addedWeightKg===''||!Number.isFinite(Number(record.addedWeightKg))||Number(record.addedWeightKg)<0)continue;
+    const metric=measurementValue(record),key=maxConditionKey(record)+'|'+metric.metricBasis;
+    if(!grouped.has(key))grouped.set(key,[]);
+    const body=Number(record.bodyweightKg);
+    grouped.get(key).push({...record,...metric,bodyweightRatio:body>0&&Number.isFinite(body)?metric.valueKg/body:null});
   }
-  return [...grouped.values()].map(series => {
-    series.sort((a, b) => String(a.date).localeCompare(String(b.date)));
-    let best = -Infinity;
-    return { key: [series[0].maxType, series[0].gripType || "", series[0].edgeDepthMm || "", series[0].maxType === "singleHandLift" ? (series[0].liftHand || "right") : ""].join("|"), entries: series.map(record => {
-      const valueKg = Number(record.totalLoadKg ?? record.addedWeightKg);
-      const isPersonalBest = valueKg > best;
-      best = Math.max(best, valueKg);
-      return { ...record, valueKg, isPersonalBest };
-    }) };
-  });
+  return [...grouped].map(([key,entries])=>{let best=-Infinity;entries.sort((a,b)=>String(a.date).localeCompare(String(b.date)));return {key,entries:entries.map(row=>{const isPersonalBest=row.valueKg>best;best=Math.max(best,row.valueKg);return {...row,isPersonalBest};})};});
 }
 
 export function removeRecord(records, id) {
   return records.filter(record => record.id !== id);
 }
 
-export function calculateGoalProgress(records, goals, now = new Date()) {
-  const ym = [now.getFullYear(), String(now.getMonth() + 1).padStart(2, "0")].join("-");
-  const year = String(now.getFullYear());
-  const period = (record, prefix) => String(record.date || "").startsWith(prefix);
-  const countDays = (kind, prefix) => new Set(records.filter(record => record.kind === kind && period(record, prefix)).map(record => record.date)).size;
-  return [
-    { key: "gymDaysMonthly", label: "ジムに行く日", current: countDays("gym", ym), target: Number(goals.gymDaysMonthly) || 0, unit: "日" },
-    { key: "outdoorDaysYearly", label: "外岩に行く日", current: countDays("outdoor", year), target: Number(goals.outdoorDaysYearly) || 0, unit: "日" },
-    { key: "trainingDaysMonthly", label: "トレーニング日", current: countDays("training", ym), target: Number(goals.trainingDaysMonthly) || 0, unit: "日" }
-  ];
-}
-
-export function summarizeProject(project, records) {
-  const linked = records.filter(record => record.projectId === project.id);
-  return { sessions: linked.length, sends: linked.reduce((sum, record) => sum + (Number(record.sends) || 0), 0), lastDate: linked.map(record => record.date).sort().at(-1) || "" };
-}
-
 export function buildCloudPayload(storage) {
-  return { records: JSON.parse(storage.getItem("climbLogRecords") || "[]"), gyms: JSON.parse(storage.getItem("climbLogGyms") || "null"), projects: JSON.parse(storage.getItem("climbLogProjects") || "[]"), goals: JSON.parse(storage.getItem("climbLogGoals") || "{}"), preferences: JSON.parse(storage.getItem("climbLogPreferences") || "{}") };
+  return { ...Object.fromEntries(extraCollections.map(name=>[name,readCollection(storage,name)])), records: migrateLegacyRecords(JSON.parse(storage.getItem("climbLogRecords") || "[]")), gyms: JSON.parse(storage.getItem("climbLogGyms") || "null"), goals: normalizeNarrativeGoals(JSON.parse(storage.getItem("climbLogGoals") || "{}")), preferences: JSON.parse(storage.getItem("climbLogPreferences") || "{}"), bodyWeights: JSON.parse(storage.getItem("climbLogBodyWeights") || "[]"), bodyProfile: JSON.parse(storage.getItem("climbLogBodyProfile") || "{}") };
 }
 
 export function validateMaxTest({ maxType, addedWeightKg, bodyweightKg, edgeDepthMm, holdSeconds }) {
@@ -64,4 +42,24 @@ export function validateMaxTest({ maxType, addedWeightKg, bodyweightKg, edgeDept
 export function calculateTotalLoad(addedWeightKg, bodyweightKg) {
   const added = Number(addedWeightKg) || 0;
   return bodyweightKg === null || bodyweightKg === "" || bodyweightKg === undefined ? added : added + (Number(bodyweightKg) || 0);
+}
+
+// Retire old task links without removing climbing history or changing user notes.
+export function migrateLegacyRecords(records) {
+  return records.map(record => {
+    if (!record || typeof record !== 'object') return record;
+    if (!Object.hasOwn(record, 'projectId') && !(record.kind === 'outdoor' && record.result === 'project')) return record;
+    const { projectId, ...rest } = record;
+    if (rest.kind === 'outdoor' && rest.result === 'project') {
+      rest.result = 'attempt'; rest.sends = 0;
+      if (typeof rest.summary === 'string') rest.summary = rest.summary.replaceAll('プロジェクト', 'トライ');
+    }
+    return rest;
+  });
+}
+
+export function getBodyWeightForDate(history, date) {
+  const eligible = history.filter(item => /^\d{4}-\d{2}-\d{2}$/.test(item.date) && item.date <= date && Number.isFinite(Number(item.kg)) && Number(item.kg) > 0);
+  eligible.sort((a,b)=>a.date.localeCompare(b.date));
+  return eligible.length ? Number(eligible.at(-1).kg) : null;
 }

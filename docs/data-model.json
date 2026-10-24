@@ -16,8 +16,7 @@
     "partners": "string | null",
     "memo": "string | null",
     "createdAt": "ISO-8601",
-    "updatedAt": "ISO-8601",
-    "projectId": "uuid | null"
+    "updatedAt": "ISO-8601"
   },
   "gym": {
     "id": "uuid",
@@ -51,7 +50,9 @@
     "gradeLabelSnapshot": "string | null",
     "colorSnapshot": "#RRGGBB | null",
     "standardGradeSnapshot": "string | null",
-    "result": "flash | onsight | redpoint | send | attempt | project",
+    "result": "flash | onsight | redpoint | send | attempt",
+    "gymOutcome": "completed | failed — ジム記録のみ。既存記録は completed 扱い",
+    "batchSessionId": "uuid | null — 一括入力で同時に保存した課題・種目のグループ",
     "attemptCount": "integer",
     "attemptsRange": "string | null",
     "styleTags": [
@@ -77,30 +78,115 @@
     "edgeDepthMm": "number | null",
     "holdSeconds": "number | null",
     "addedWeightKg": "number | null",
-    "bodyweightKg": "number | null",
-    "totalLoadKg": "number | null"
+    "bodyweightKg": "number | null — 最大出力と通常トレーニングで記録日当日の身体情報を使用",
+    "loadMethod": "added | liftFromGround | bodyweight — 通常トレーニングの荷重方法",
+    "totalLoadKg": "number | null",
+    "batchSessionId": "uuid | null — 一括保存した種目のグループ"
   },
-  "climbingProject": {
-    "id": "uuid",
-    "name": "string",
-    "activityType": "gym | outdoor",
-    "location": "string | null",
-    "grade": "string | null",
-    "startDate": "YYYY-MM-DD | null",
-    "status": "active | paused | completed",
-    "bestProgress": "string | null",
-    "notes": "string | null"
-  },
-  "trainingGoals": {
-    "gymDaysMonthly": "integer",
-    "outdoorDaysYearly": "integer",
-    "trainingDaysMonthly": "integer"
+  "bodyWeightEntry": {
+    "date": "YYYY-MM-DD",
+    "kg": "number",
+    "createdAt": "ISO-8601"
   },
   "userAppStatePayload": {
     "records": "array",
     "gyms": "array | null",
-    "projects": "climbingProject[]",
     "preferences": "object { theme: dark | light | system, weekStart: 0 | 1 }",
-    "goals": "trainingGoals"
+    "bodyWeights": "bodyWeightEntry[]",
+    "goals": "narrativeGoals",
+    "bodyProfile": "bodyProfile",
+    "trainingPresets": "measurementPreset[]",
+    "trainingMenus": "trainingMenu[]",
+    "dailyJournals": "dailyJournal[]",
+    "recordHistory": "recordRevision[]",
+    "recycleBin": "trashEntry[]"
+  },
+  "bodyProfile": {
+    "heightCm": "number | null",
+    "reachCm": "number | null — 左手指先から右手指先まで",
+    "updatedAt": "ISO-8601"
+  },
+  "deviceInputDraft": {
+    "storage": "localStorage:climbLogInputDrafts:<userId> — クラウド同期対象外",
+    "version": 1,
+    "drafts": [
+      {
+        "key": "new:YYYY-MM-DD | edit:<recordId>",
+        "date": "YYYY-MM-DD",
+        "recordId": "uuid | null",
+        "form": "入力欄IDと値の対応表",
+        "states": "gym / training: entries, editingId, resume",
+        "updatedAt": "ISO-8601"
+      }
+    ]
+  },
+  "maxOutputStatistics": {
+    "valueKg": "挙上重量 | 合計負荷 | 体重未記録時の追加重量",
+    "bodyweightRatio": "number | null — valueKg / 測定時体重",
+    "conditionKey": "種目・握り・厚さ・保持秒数・左右・負荷の基準",
+    "differencePercent": "number | null — 同日同条件の abs(rightKg-leftKg)/max(rightKg,leftKg)*100"
+  },
+  "narrativeGoals": {
+    "focus": "string — 目指したいこと",
+    "plan": "string — 次に試すこと",
+    "reflection": "string — 進み具合・気づき",
+    "status": "active | reviewing | achieved — 本人が選択",
+    "updatedAt": "ISO-8601 | optional"
+  },
+  "homeAdventure": {
+    "persistence": "記録・文章の目標から表示時に計算。独立したポイント保存はしない",
+    "badges": "最初の記録 / 外岩完登 / 測定 / 文章の目標 / メモ / 同条件の自己ベスト更新",
+    "count": "獲得したしるしの数。訪問回数の目標とは独立"
+  },
+  "setDetail": {
+    "reps": "integer >= 0",
+    "loadKg": "external load >= 0",
+    "holdSeconds": "number >= 0",
+    "note": "training record.setDetails is optional; per-set values override uniform sets/reps/load in aggregation"
+  },
+  "measurementPreset": {
+    "id": "uuid",
+    "name": "string",
+    "fields": "maxType, gripType, edgeDepthMm, holdSeconds, liftHand — result weights are not saved"
+  },
+  "trainingMenu": {
+    "id": "uuid",
+    "name": "string",
+    "entries": "routine templates without id/date/bodyweight; apply to pending list, stamp date and bodyweight when saved"
+  },
+  "dailyJournal": {
+    "date": "YYYY-MM-DD (unique per account)",
+    "condition": "sleepHours|null, energy, fatigue, fingerState, fingerNote",
+    "reflection": "string",
+    "nextIdea": "string",
+    "updatedAt": "ISO-8601"
+  },
+  "recordRevision": {
+    "id": "uuid",
+    "recordId": "uuid",
+    "action": "edit | delete | restore | rollback | import",
+    "before": "record | null",
+    "after": "record | null",
+    "changedAt": "ISO-8601"
+  },
+  "trashEntry": {
+    "id": "uuid",
+    "record": "full record snapshot",
+    "deletedAt": "ISO-8601",
+    "retention": "no automatic deletion; permanent deletion also removes associated revisions"
+  },
+  "restTimer": {
+    "storage": "localStorage:climbLogRestTimer:<userId> — device only",
+    "status": "idle | running | paused | done",
+    "endsAt": "Unix milliseconds, absolute deadline",
+    "remainingSeconds": "paused value",
+    "durationSeconds": "5..3600",
+    "sound": "opt-in; no guaranteed background alarm"
+  },
+  "pixelCompanion": {
+    "art": "original canvas pixels, 320x192, no external assets",
+    "reactions": "idle | climb | write | rest | celebrate",
+    "decorations": "derived from real earned badges; no customization controls",
+    "reducedMotion": "respect prefers-reduced-motion"
   }
 }
