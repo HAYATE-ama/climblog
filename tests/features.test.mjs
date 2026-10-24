@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { searchRecords, getMaxTestSeries, calculateGoalProgress, summarizeProject, buildCloudPayload, validateMaxTest, calculateTotalLoad, removeRecord } from "../assets/js/features.mjs";
+import { searchRecords, getMaxTestSeries, buildCloudPayload, validateMaxTest, calculateTotalLoad, removeRecord } from "../assets/js/features.mjs";
 
 test("search filters by text and activity type, newest records first", () => {
   const rows = [{ date: "2026-04-01", kind: "gym", place: "Alpha", grade: "6級" }, { date: "2026-04-03", kind: "outdoor", place: "御岳", grade: "1級" }, { date: "2026-04-02", kind: "gym", place: "御岳ジム", grade: "5級" }];
@@ -23,23 +23,11 @@ test("max test series separates grip and edge conditions and marks new bests", (
   assert.equal(series[0].entries[1].valueKg, 72);
 });
 
-test("goal progress counts distinct days within the right periods", () => {
-  const rows = [{ date: "2026-04-02", kind: "gym" }, { date: "2026-04-02", kind: "gym" }, { date: "2026-04-05", kind: "training" }, { date: "2026-01-10", kind: "outdoor" }];
-  const progress = calculateGoalProgress(rows, { gymDaysMonthly: 8, outdoorDaysYearly: 6, trainingDaysMonthly: 12 }, new Date(2026, 3, 20));
-  assert.deepEqual(progress.map(item => item.current), [1, 1, 1]);
-});
-
-test("project summary counts linked sessions and sends", () => {
-  const project = { id: "p1" };
-  const rows = [{ projectId: "p1", date: "2026-04-01", sends: 2 }, { projectId: "p1", date: "2026-04-03", sends: 1 }, { projectId: "p2", date: "2026-04-05", sends: 10 }];
-  assert.deepEqual(summarizeProject(project, rows), { sessions: 2, sends: 3, lastDate: "2026-04-03" });
-});
-
 test("cloud payload includes all account state and defaults missing new collections", () => {
   const values = new Map([["climbLogRecords", "[1]"], ["climbLogGyms", "[2]"], ["climbLogProjects", "[3]"], ["climbLogGoals", "{\"gymDaysMonthly\":8}"]]);
   const storage = { getItem: key => values.get(key) ?? null };
-  assert.deepEqual(buildCloudPayload(storage), { records: [1], gyms: [2], projects: [3], goals: { gymDaysMonthly: 8 }, preferences: {} });
-  assert.deepEqual(buildCloudPayload({ getItem: () => null }), { records: [], gyms: null, projects: [], goals: {}, preferences: {} });
+  assert.deepEqual(buildCloudPayload(storage), { records: [1], gyms: [2], goals: { focus: '', plan: '', reflection: '', status: 'active' }, preferences: {}, bodyWeights: [], bodyProfile: {}, trainingPresets:[],trainingMenus:[],dailyJournals:[],recordHistory:[],recycleBin:[] });
+  assert.deepEqual(buildCloudPayload({ getItem: () => null }), { records: [], gyms: null, goals: { focus: '', plan: '', reflection: '', status: 'active' }, preferences: {}, bodyWeights: [], bodyProfile: {}, trainingPresets:[],trainingMenus:[],dailyJournals:[],recordHistory:[],recycleBin:[] });
 });
 
 test("max test validation requires hangboard conditions and rejects negative load", () => {

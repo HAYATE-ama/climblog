@@ -1,0 +1,4 @@
+export function timerRemaining(state,now=Date.now()){return state.status==='running'?Math.max(0,Math.ceil((state.endsAt-now)/1000)):state.status==='paused'?Math.max(0,state.remainingSeconds||0):state.status==='done'?0:state.durationSeconds||90;}
+export function startTimer(state,seconds,now=Date.now()){const duration=Number(seconds);if(!Number.isFinite(duration)||duration<5||duration>3600)throw new Error('休憩は5〜3600秒で設定してください。');return {...state,status:'running',durationSeconds:duration,endsAt:now+duration*1000,remainingSeconds:duration};}
+export function pauseTimer(state,now=Date.now()){return {...state,status:'paused',remainingSeconds:timerRemaining(state,now),endsAt:null};}
+export function resumeTimer(state,now=Date.now()){return {...state,status:'running',endsAt:now+timerRemaining(state,now)*1000};}
