@@ -16,7 +16,8 @@
     "partners": "string | null",
     "memo": "string | null",
     "createdAt": "ISO-8601",
-    "updatedAt": "ISO-8601"
+    "updatedAt": "ISO-8601",
+    "projectId": "uuid | null"
   },
   "gym": {
     "id": "uuid",
@@ -53,7 +54,9 @@
     "result": "flash | onsight | redpoint | send | attempt | project",
     "attemptCount": "integer",
     "attemptsRange": "string | null",
-    "styleTags": ["string"],
+    "styleTags": [
+      "string"
+    ],
     "memo": "string | null"
   },
   "trainingLog": {
@@ -66,6 +69,38 @@
     "durationSeconds": "integer | null",
     "loadKg": "number | null",
     "rpe": "integer 1-10 | null",
-    "memo": "string | null"
+    "memo": "string | null",
+    "trainingMode": "routine | maxTest",
+    "maxType": "hangboard | singleHandLift | weightedPullup | null",
+    "liftHand": "right | left | null",
+    "gripType": "open | halfCrimp | fullCrimp | null",
+    "edgeDepthMm": "number | null",
+    "holdSeconds": "number | null",
+    "addedWeightKg": "number | null",
+    "bodyweightKg": "number | null",
+    "totalLoadKg": "number | null"
+  },
+  "climbingProject": {
+    "id": "uuid",
+    "name": "string",
+    "activityType": "gym | outdoor",
+    "location": "string | null",
+    "grade": "string | null",
+    "startDate": "YYYY-MM-DD | null",
+    "status": "active | paused | completed",
+    "bestProgress": "string | null",
+    "notes": "string | null"
+  },
+  "trainingGoals": {
+    "gymDaysMonthly": "integer",
+    "outdoorDaysYearly": "integer",
+    "trainingDaysMonthly": "integer"
+  },
+  "userAppStatePayload": {
+    "records": "array",
+    "gyms": "array | null",
+    "projects": "climbingProject[]",
+    "preferences": "object { theme: dark | light | system, weekStart: 0 | 1 }",
+    "goals": "trainingGoals"
   }
 }
