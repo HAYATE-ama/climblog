@@ -1,0 +1,71 @@
+{
+  "climbingSession": {
+    "id": "uuid",
+    "userId": "uuid",
+    "sessionDate": "YYYY-MM-DD",
+    "activityType": "gym | outdoor | training",
+    "gymId": "uuid | null",
+    "cragName": "string | null",
+    "areaName": "string | null",
+    "location": "string | null",
+    "startedAt": "ISO-8601 | null",
+    "durationMinutes": "integer | null",
+    "condition": "string | null",
+    "weather": "string | null",
+    "rockCondition": "string | null",
+    "partners": "string | null",
+    "memo": "string | null",
+    "createdAt": "ISO-8601",
+    "updatedAt": "ISO-8601"
+  },
+  "gym": {
+    "id": "uuid",
+    "userId": "uuid",
+    "name": "string",
+    "branchName": "string | null",
+    "address": "string | null",
+    "archivedAt": "ISO-8601 | null"
+  },
+  "gymGradeBand": {
+    "id": "uuid",
+    "userId": "uuid",
+    "gymId": "uuid",
+    "label": "string",
+    "colorHex": "#RRGGBB",
+    "sortOrder": "integer",
+    "standardGradeSystem": "string | null",
+    "standardGradeLabel": "string | null",
+    "validFrom": "YYYY-MM-DD | null",
+    "validTo": "YYYY-MM-DD | null",
+    "archivedAt": "ISO-8601 | null"
+  },
+  "climbLog": {
+    "id": "uuid",
+    "userId": "uuid",
+    "sessionId": "uuid",
+    "discipline": "boulder | sport | trad | topRope | board",
+    "routeName": "string | null",
+    "gradeSystem": "string | null",
+    "gradeBandId": "uuid | null",
+    "gradeLabelSnapshot": "string | null",
+    "colorSnapshot": "#RRGGBB | null",
+    "standardGradeSnapshot": "string | null",
+    "result": "flash | onsight | redpoint | send | attempt | project",
+    "attemptCount": "integer",
+    "attemptsRange": "string | null",
+    "styleTags": ["string"],
+    "memo": "string | null"
+  },
+  "trainingLog": {
+    "id": "uuid",
+    "userId": "uuid",
+    "sessionId": "uuid",
+    "exerciseName": "string",
+    "sets": "integer | null",
+    "reps": "integer | null",
+    "durationSeconds": "integer | null",
+    "loadKg": "number | null",
+    "rpe": "integer 1-10 | null",
+    "memo": "string | null"
+  }
+}
