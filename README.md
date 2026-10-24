@@ -4,7 +4,7 @@
 
 ## Supabaseの準備
 1. SupabaseでFree projectを作成します。
-2. SQL Editorで `schema.sql` を実行し、保存テーブルとRLSアクセス制御を作成します。
+2. SQL Editorで `supabase/schema.sql` を実行し、保存テーブルとRLSアクセス制御を作成します。
 3. Authentication > URL Configurationに公開後のGitHub Pages URLを登録します。
 4. `config.example.js` を `config.js` にコピーし、Project URLとPublishable keyを設定します。Secret/service_role keyはブラウザー側に置かないでください。
 
@@ -22,3 +22,11 @@ PrivateリポジトリでもPagesのサイトURLは公開扱いです。記録�
 この初期版はアカウントごとにJSONBデータを1行で保存します。長期間の大量記録では同期データが大きくなるため、必要になった時点で記録を1件ずつの行に分割する移行が必要です。
 
 既存プロトタイプのローカル記録は自動移行しません。ログイン後のデータ混在を防ぐため、新しいアカウントは空の状態から開始します。
+
+## フォルダー構成
+- index.html: 画面のHTMLとスタイル
+- ssets/js/: 画面操作とクラウド同期
+- supabase/schema.sql: Supabaseのテーブルとアクセス制御
+- docs/data-model.json: 記録データの構造
+- .github/workflows/: GitHub Pagesの公開設定
+- config.js: Supabase接続設定（Publishable keyのみ）
