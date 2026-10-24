@@ -25,7 +25,7 @@ PrivateリポジトリでもPagesのサイトURLは公開扱いです。記録�
 
 ## フォルダー構成
 - index.html: 画面のHTMLとスタイル
-- ssets/js/: 画面操作とクラウド同期
+- assets/js/: 画面操作とクラウド同期
 - supabase/schema.sql: Supabaseのテーブルとアクセス制御
 - docs/data-model.json: 記録データの構造
 - .github/workflows/: GitHub Pagesの公開設定
