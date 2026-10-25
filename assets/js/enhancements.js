@@ -1,3 +1,6 @@
+import {installRecordViewer} from './record-viewer.mjs';
+import {installWorkoutScreen} from './workout-screen.mjs';
+import {installCoachScreen} from './coach-screen.mjs';
 import {installTrainingStudio} from './training-studio.js';
 import {installLifeTools} from './life-tools.js';
 import {installPixelCompanion} from './pixel-companion.mjs';
@@ -111,5 +114,5 @@ function decorateDetails(){const records=new Map(read('climbLogRecords').map(row
 new MutationObserver(decorateDetails).observe($('#detail'),{childList:true,subtree:true});decorateDetails();
 
 installTrainingStudio({recordApi,states,panels,setControl,fillDraft,renderDrafts});
-installLifeTools();installPixelCompanion();installPwa();
+installLifeTools();installPixelCompanion();installPwa();installCoachScreen();installWorkoutScreen();installRecordViewer();
 installRecordWorkflow({recordApi,states,panels,setControl,snapshotForm,restoreForm,fillDraft,clearForm,syncGrade,updateOutcome,renderDrafts,updateTrainingWeightInfo});

@@ -1,5 +1,5 @@
-export const accountKeys={records:'climbLogRecords',gyms:'climbLogGyms',goals:'climbLogGoals',preferences:'climbLogPreferences',bodyWeights:'climbLogBodyWeights',bodyProfile:'climbLogBodyProfile',trainingPresets:'climbLogTrainingPresets',trainingMenus:'climbLogTrainingMenus',dailyJournals:'climbLogDailyJournals',recordHistory:'climbLogRecordHistory',recycleBin:'climbLogRecycleBin'};
-export const extraCollections=['trainingPresets','trainingMenus','dailyJournals','recordHistory','recycleBin'];
+export const accountKeys={records:'climbLogRecords',gyms:'climbLogGyms',goals:'climbLogGoals',preferences:'climbLogPreferences',bodyWeights:'climbLogBodyWeights',bodyProfile:'climbLogBodyProfile',trainingPresets:'climbLogTrainingPresets',trainingMenus:'climbLogTrainingMenus',dailyJournals:'climbLogDailyJournals',recordHistory:'climbLogRecordHistory',recycleBin:'climbLogRecycleBin',workoutReceipts:'climbLogWorkoutReceipts'};
+export const extraCollections=['trainingPresets','trainingMenus','dailyJournals','recordHistory','recycleBin','workoutReceipts'];
 export function readCollection(storage,name){try{const value=JSON.parse(storage.getItem(accountKeys[name])||'[]');return Array.isArray(value)?value:[];}catch{return [];}}
 export function writeAccountPatch(storage,patch){
   const rows=Object.entries(patch).filter(([name])=>Object.hasOwn(accountKeys,name)).map(([name,value])=>({key:accountKeys[name],value:JSON.stringify(value)}));

@@ -99,7 +99,8 @@
     "trainingMenus": "trainingMenu[]",
     "dailyJournals": "dailyJournal[]",
     "recordHistory": "recordRevision[]",
-    "recycleBin": "trashEntry[]"
+    "recycleBin": "trashEntry[]",
+    "workoutReceipts": "workoutReceipt[]"
   },
   "bodyProfile": {
     "heightCm": "number | null",
@@ -152,7 +153,8 @@
   "trainingMenu": {
     "id": "uuid",
     "name": "string",
-    "entries": "routine templates without id/date/bodyweight; apply to pending list, stamp date and bodyweight when saved"
+    "entries": "routine templates without id/date/bodyweight; apply to pending list, stamp date and bodyweight when saved",
+    "workoutPlan": "optional: normalizedWorkoutPlan — セットごとのtarget/loadKg/restSeconds、mode、種目間休憩を保持"
   },
   "dailyJournal": {
     "date": "YYYY-MM-DD (unique per account)",
@@ -188,5 +190,55 @@
     "reactions": "idle | climb | write | rest | celebrate",
     "decorations": "derived from real earned badges; no customization controls",
     "reducedMotion": "respect prefers-reduced-motion"
+  },
+  "normalizedWorkoutPlan": {
+    "schemaVersion": 1,
+    "title": "string (1..100)",
+    "place": "string",
+    "transitionRestSeconds": "integer 0..3600",
+    "exercises": [
+      {
+        "id": "uuid",
+        "name": "string",
+        "mode": "time | reps",
+        "loadMethod": "added | liftFromGround | bodyweight",
+        "sets": [
+          {
+            "target": "seconds 1..3600 | reps integer 1..1000",
+            "loadKg": "number 0..1000",
+            "restSeconds": "integer 0..3600"
+          }
+        ]
+      }
+    ],
+    "preparationSeconds": "0 | 3 | 5 | 10 — 新規メニューは5秒。省略した旧途中記録は0秒として位置を維持"
+  },
+  "workoutDraft": {
+    "storage": "localStorage:climbLogWorkoutDraft:<userId> — 端末内のみ",
+    "schemaVersion": 1,
+    "id": "uuid, 実行の一意識別子",
+    "date": "開始時に選択した記録日。日付をまたいでも変更しない",
+    "plan": "開始時の独立スナップショット",
+    "status": "running | paused | review",
+    "phaseIndex": "運動/休憩の位置",
+    "results": "completed/skipped、plannedTarget、actual、loadKg、actualWorkSeconds、actualRestSeconds",
+    "recovery": "実行中は5秒間隔と状態遷移時にpausedチェックポイント保存。再読み込みは必ず一時停止で再開"
+  },
+  "workoutReceipt": {
+    "id": "workoutDraft.id",
+    "date": "YYYY-MM-DD",
+    "savedAt": "ISO-8601",
+    "recordIds": "決定的ID: workout-<sessionId>-<exerciseId>",
+    "purpose": "二重保存防止。元記録を削除しても残す。クラウド・JSON復元対象"
+  },
+  "workoutRecord": {
+    "workoutSessionId": "uuid",
+    "workoutTitle": "string",
+    "workoutStartedAt": "ISO-8601",
+    "workoutFinishedAt": "ISO-8601",
+    "batchSessionId": "同じworkoutSessionId",
+    "sessionSetResults": "保存時の実行スナップショット。後日の編集では通常のsetDetailsが集計の正本",
+    "setDetails": "実施済み・実績>0だけ。timeはholdSeconds、repsはreps",
+    "durationMinutes": "完了セットの実測運動+休憩の合計分。未完了・停止中は含めない"
   }
 }
