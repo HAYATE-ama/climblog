@@ -5,3 +5,13 @@
 @media(max-width:640px){.lifeDialog input:not([type=checkbox]),.lifeDialog select,.lifeDialog textarea,.studioSection input,.studioSection select,.studioPair input{font-size:16px}}
 
 .lifeDialogHead h2 span{display:inline-block}.lifeDialogHead [data-close]{flex:none}
+
+/* Quiet home: the scene itself is the only interactive element. */
+.quietHome{width:min(100%,800px);margin:clamp(12px,3vh,36px) auto 32px;box-sizing:border-box}
+.companionScene{display:block;width:100%;padding:0;border:1px solid var(--line);border-radius:20px;background:#262c42;overflow:hidden;cursor:pointer;box-shadow:0 12px 40px #0002;touch-action:manipulation}
+.companionScene canvas{display:block;width:100%;height:auto;aspect-ratio:5/3;image-rendering:pixelated}
+.companionScene:focus-visible{outline:3px solid #ff6f00;outline-offset:5px}
+.quietSpeech{display:flex;align-items:baseline;gap:16px;margin:22px auto 0;padding:0 8px;max-width:620px;min-height:54px}
+.companionName{color:var(--muted);font-size:12px;flex:none}.quietSpeech p{color:var(--text);font-size:15px;line-height:1.9;margin:0;overflow-wrap:anywhere}
+@media(max-width:640px){.quietHome{margin:16px auto 24px}.companionScene{border-radius:14px}.quietSpeech{margin-top:18px;gap:12px;padding:0 4px}.quietSpeech p{font-size:14px}}
+@media(prefers-reduced-motion:reduce){.companionScene{scroll-behavior:auto;transition:none}}
