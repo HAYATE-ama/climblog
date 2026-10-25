@@ -65,7 +65,7 @@ window.addEventListener('climblog:recordSaved',event=>{try{store.remove(event.de
   modal.addEventListener('change',event=>{if(allowed.has(event.target.id)){updateCopy();persist();}});
   modal.addEventListener('click',event=>{if(event.target.closest('.batchEntry,#gymGradeMenu'))queueMicrotask(persist);});
   $('#cancel').addEventListener('click',persist,{capture:true});
-  window.addEventListener('pagehide',persist);
+  window.addEventListener('pagehide',persist);window.addEventListener('climblog:authLock',persist);
   document.addEventListener('visibilitychange',()=>{if(document.hidden)persist();});
   $('#resumeInputDraft').addEventListener('click',()=>{const saved=store.get($('#draftResumeSelect').value);if(saved&&!recordApi.open(saved.form.kind,saved.recordId,saved.date))alert('編集対象の記録は削除されています。下書きを確認して破棄してください。');});
   $('#removeInputDraft').addEventListener('click',()=>{const key=$('#draftResumeSelect').value;if(key&&confirm('この端末の下書きを破棄しますか？保存済みの記録は削除されません。')){store.remove(key);renderBanner();}});
