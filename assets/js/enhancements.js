@@ -33,8 +33,8 @@ document.head.append(style);
 const settingsGrid=$('#settingsHome .settingsHomeGrid'),groups=settingsGrid.querySelectorAll('.settingGroup');
 $('h3',groups[0]).textContent='表示・カレンダー';
 groups[0].append($('.settingControl',groups[1]));groups[1].remove();
-const bodyGroup=document.createElement('section');bodyGroup.className='card settingGroup';
-bodyGroup.innerHTML='<h3>身体情報</h3><p>身長・リーチと、日付ごとの体重を管理します。</p><button type="button" class="secondary" id="openBodyWeight">身体情報を開く</button>';
+const bodyGroup=document.createElement('section');bodyGroup.className='card settingGroup settingLinkGroup';groups[2].classList.add('settingLinkGroup');
+bodyGroup.innerHTML='<h3>身体情報</h3><p>身長・リーチと、日付ごとの体重を管理します。</p><button type="button" class="secondary" id="openBodyWeight">身体情報 <span aria-hidden="true">›</span></button>';
 settingsGrid.insertBefore(bodyGroup,groups[2]);
 const bodyView=document.createElement('section');bodyView.id='bodyWeightSettings';bodyView.hidden=true;
 bodyView.innerHTML=`
@@ -110,7 +110,7 @@ $('#kind').addEventListener('change',event=>{const next=event.target.value;if(st
 $('#trainingMode').addEventListener('change',event=>{if(event.target.value==='maxTest'&&states.training.drafts.size){alert('追加済みの種目を保存してから記録方法を切り替えてください。');event.target.value='routine';event.target.dispatchEvent(new Event('change',{bubbles:true}));}panels.training.hidden=recordApi.isEditing()||event.target.value!=='routine';});
 window.addEventListener('climblog:recordOpened',()=>{const existing=recordApi.getEditingRecord();activeKind=$('#kind').value;for(const kind of ['gym','training']){states[kind].drafts.clear();states[kind].editingId=null;states[kind].resume=null;panels[kind].hidden=Boolean(existing)||kind==='training'&&$('#trainingMode').value!=='routine';renderDrafts(kind);}$('#gymOutcome').value=existing?.gymOutcome||'completed';updateOutcome();$('#routineLoadMethod').value=existing?.loadMethod||'added';if(activeKind==='training')updateTrainingWeightInfo();});
 
-function decorateDetails(){const records=new Map(read('climbLogRecords').map(row=>[row.id,row]));for(const card of $('#detail').querySelectorAll('[data-record-id]')){const row=records.get(card.dataset.recordId);if(row?.kind==='gym'&&row.gymOutcome==='failed'&&!$('[data-failure-label]',card)){const badge=document.createElement('span');badge.className='badge';badge.dataset.failureLabel='true';badge.textContent='敗退';$('.sessionActions',card)?.prepend(badge);}if(row?.kind==='training'&&row.bodyweightKg&&!$('[data-bodyweight-label]',card)){const label=document.createElement('small');label.dataset.bodyweightLabel='true';label.textContent=`体重 ${row.bodyweightKg} kg`;$('.logrow',card)?.append(label);}}}
+function decorateDetails(){const records=new Map(read('climbLogRecords').map(row=>[row.id,row]));for(const card of $('#detail').querySelectorAll('[data-record-id]')){if(card.classList.contains('compactRecord'))continue;const row=records.get(card.dataset.recordId);if(row?.kind==='gym'&&row.gymOutcome==='failed'&&!$('[data-failure-label]',card)){const badge=document.createElement('span');badge.className='badge';badge.dataset.failureLabel='true';badge.textContent='敗退';$('.sessionActions',card)?.prepend(badge);}if(row?.kind==='training'&&row.bodyweightKg&&!$('[data-bodyweight-label]',card)){const label=document.createElement('small');label.dataset.bodyweightLabel='true';label.textContent=`体重 ${row.bodyweightKg} kg`;$('.logrow',card)?.append(label);}}}
 new MutationObserver(decorateDetails).observe($('#detail'),{childList:true,subtree:true});decorateDetails();
 
 installTrainingStudio({recordApi,states,panels,setControl,fillDraft,renderDrafts});
