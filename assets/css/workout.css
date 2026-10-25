@@ -5,3 +5,11 @@
 /* Saved routines share one compact list, on desktop and mobile. */
 .workoutUsualMenus{margin:18px 0 24px}.workoutUsualMenus h3{font-size:15px}.workoutUsualList{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--panel)}
 .workoutUsualList .workoutSavedMenuItem{margin:0;padding:6px 10px;border-bottom:1px solid var(--line);grid-template-columns:minmax(0,1fr) auto}.workoutUsualList .workoutSavedMenuItem:last-child{border-bottom:0}.workoutUsualList .workoutSavedMenuItem button:first-child{display:block;border:0!important;background:transparent!important;padding:8px 2px!important}.workoutUsualList strong{display:block;overflow-wrap:anywhere}.workoutUsualList small{display:block;color:var(--muted);font-size:12px;margin-top:4px}.workoutBasicMenus{margin-top:20px}.customExerciseFields{padding:0 12px;border:1px solid var(--line);border-radius:9px}.customExerciseFields small{display:block;margin:10px 0}.customExerciseFields input{width:100%}
+
+/* Constrain native date controls, including iOS intrinsic widths. */
+html{scroll-padding-top:var(--appStickyOffset,80px)}
+#workoutView .workoutFields>label{min-width:0;max-width:100%}
+#workoutView input[type=date]{min-width:0;min-inline-size:0;max-width:100%;max-inline-size:100%;width:100%;appearance:none;-webkit-appearance:none;text-align:left}
+#workoutView input[type=date]::-webkit-date-and-time-value{min-width:0;text-align:left}
+#workoutView input[type=date]::-webkit-datetime-edit{min-width:0;padding:0}
+@media(max-width:720px){#workoutView .workoutMetaFields{grid-template-columns:minmax(0,1fr);gap:0}#workoutView .workoutMetaFields>label{width:100%}}
