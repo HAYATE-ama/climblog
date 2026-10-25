@@ -26,8 +26,8 @@ test("max test series separates grip and edge conditions and marks new bests", (
 test("cloud payload includes all account state and defaults missing new collections", () => {
   const values = new Map([["climbLogRecords", "[1]"], ["climbLogGyms", "[2]"], ["climbLogProjects", "[3]"], ["climbLogGoals", "{\"gymDaysMonthly\":8}"]]);
   const storage = { getItem: key => values.get(key) ?? null };
-  assert.deepEqual(buildCloudPayload(storage), { records: [1], gyms: [2], goals: { focus: '', plan: '', reflection: '', status: 'active' }, preferences: {}, bodyWeights: [], bodyProfile: {}, trainingPresets:[],trainingMenus:[],dailyJournals:[],recordHistory:[],recycleBin:[] });
-  assert.deepEqual(buildCloudPayload({ getItem: () => null }), { records: [], gyms: null, goals: { focus: '', plan: '', reflection: '', status: 'active' }, preferences: {}, bodyWeights: [], bodyProfile: {}, trainingPresets:[],trainingMenus:[],dailyJournals:[],recordHistory:[],recycleBin:[] });
+  assert.deepEqual(buildCloudPayload(storage), { records: [1], gyms: [2], goals: { focus: '', plan: '', reflection: '', status: 'active' }, preferences: {}, bodyWeights: [], bodyProfile: {}, trainingPresets:[],trainingMenus:[],dailyJournals:[],recordHistory:[],recycleBin:[],workoutReceipts:[] });
+  assert.deepEqual(buildCloudPayload({ getItem: () => null }), { records: [], gyms: null, goals: { focus: '', plan: '', reflection: '', status: 'active' }, preferences: {}, bodyWeights: [], bodyProfile: {}, trainingPresets:[],trainingMenus:[],dailyJournals:[],recordHistory:[],recycleBin:[],workoutReceipts:[] });
 });
 
 test("max test validation requires hangboard conditions and rejects negative load", () => {
