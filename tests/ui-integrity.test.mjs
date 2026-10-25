@@ -44,12 +44,9 @@ test("mobile main navigation is explicit, delegated, and returns to the top", ()
   assert.match(html, /\[hidden\]\{display:none!important\}/);
 });
 
-test("past records provide individual edit and confirmed delete controls", () => {
-  assert.match(app, /data-delete-record="\$\{r\.id\}"/);
-  assert.match(app, /data-edit-record="\$\{r\.id\}"/);
-  assert.match(app, /data-delete-record/);
-  assert.match(app, /ゴミ箱/);
-  assert.match(app, /applyAccountPatch\(moveToTrash/);
+test("past records use the detail viewer for edit and confirmed deletion", () => {
+ const viewer=fs.readFileSync(new URL('../assets/js/record-viewer.mjs',import.meta.url),'utf8');
+ assert.match(app,/class="session compactRecord"/);assert.match(viewer,/data-viewer-action="edit"/);assert.match(viewer,/data-viewer-action="delete"/);assert.match(app,/ゴミ箱/);assert.match(app,/applyAccountPatch\(moveToTrash/);
 });
 
 test("retired task management has no visible navigation, fields or save handlers", () => {
