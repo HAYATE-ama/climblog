@@ -1,3 +1,20 @@
 .DS_Store
 .env
 .env.*
+!.env.example
+
+# Local credentials, personal notes and exported user data
+/LOCAL_TEST_ACCOUNT.txt
+/private/
+/local-only/
+/backups/
+/test-results/
+/playwright-report/
+*.local.*
+*.pem
+*.key
+*.p12
+*.pfx
+*.log
+node_modules/
+/dist/
