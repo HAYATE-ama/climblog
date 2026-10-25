@@ -37,8 +37,9 @@ test('adventure badges reflect actual notes and matched personal bests, with no 
   const result=getAdventureSummary(rows,{focus:'丁寧に登りたい'},'2026-10-24');assert.equal(result.badges.find(badge=>badge.id==='personal-best').earned,true);assert.equal(result.badges.find(badge=>badge.id==='outdoor-send').earned,false);assert.equal(result.memories.length,2);
   assert.equal(getAdventureSummary([{...base,id:'a'},{...base,id:'b',holdSeconds:10,totalLoadKg:72}],{},'2026-10-24').badges.find(badge=>badge.id==='personal-best').earned,false);
 });
-test('home safely renders text goals and notes as text, including empty-state guidance',()=>{
-  const html=renderHomeMarkup([{id:'a',date:'2026-10-24',kind:'gym',memo:'<img src=x onerror=alert(1)>',place:'A'}],{focus:'<script>test</script>'},'2026-10-24');
-  assert.doesNotMatch(html,/<script>|<img src=x/);assert.match(html,/&lt;script&gt;/);assert.match(html,/data-home-action="record"/);
-  assert.match(renderHomeMarkup([],{},'2026-10-24'),/最初の記録/);
+test('home contains only the original companion scene and one short speech, without private records',()=>{
+ const html=renderHomeMarkup([{memo:'private note'}],{focus:'private goal'},'2026-10-25');
+ assert.match(html,/id="pixelRoom"/);assert.match(html,/id="companionSpeech"/);assert.match(html,/data-talk-companion/);
+ assert.doesNotMatch(html,/private note|private goal|data-home-action|data-open-workout|memoryCard|campBadges|campQuest|FIELD NOTES/);
+ assert.equal((html.match(/<button/g)||[]).length,1);
 });
