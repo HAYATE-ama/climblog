@@ -1,22 +1,13 @@
+import {summarizeRoutineExercises} from './exercise-history.mjs';
+import {exerciseDefinitions,equipmentCatalog} from './exercise-registry.mjs';
 // Stable local contracts for the future AI adapter. This module does not send data.
 import {maxConditionKey,measurementValue} from './strength-insights.mjs';
 import {trainingVolume} from './training-model.mjs';
 export const coachSchemaVersion=1;
 export const coachPurposes=[['warmup','登る前のウォームアップ'],['strength','筋力トレーニング'],['finger','指のトレーニング'],['endurance','持久力'],['light','軽めの調整']];
-export const coachEquipment=[['hangboard','ハングボード'],['weights','錘'],['pullupBar','懸垂バー'],['bands','トレーニングバンド'],['climbingWall','クライミングウォール']];
-export const coachExerciseCatalog=Object.freeze([
- {exerciseId:'generalWarmup',label:'全身のウォームアップ',phase:'warmup'},
- {exerciseId:'mobility',label:'柔軟・モビリティ',phase:'warmup'},
- {exerciseId:'easyClimbing',label:'軽いクライミング',phase:'warmup'},
- {exerciseId:'hangboard',label:'ハングボード（通常）',phase:'main'},
- {exerciseId:'weightedPullup',label:'加重懸垂（通常）',phase:'main'},
- {exerciseId:'bodyweightPullup',label:'自重懸垂',phase:'main'},
- {exerciseId:'singleHandLift',label:'片手リフト（地面から）',phase:'main'},
- {exerciseId:'core',label:'体幹トレーニング',phase:'main'},
- {exerciseId:'antagonist',label:'肩・拮抗筋の補強',phase:'main'},
- {exerciseId:'endurance',label:'クライミング持久力',phase:'main'},
- {exerciseId:'cooldown',label:'整理運動',phase:'cooldown'}
-].map(Object.freeze));
+export const coachEquipment=Object.freeze(equipmentCatalog.map(row=>Object.freeze([row.id,row.label])));
+// v1 is retained for compatibility only; new draft validation uses the shared registry.
+export const coachExerciseCatalog=Object.freeze(exerciseDefinitions.filter(d=>d.legacyCoachPhase).map(d=>Object.freeze({exerciseId:d.exerciseId,label:d.displayName,phase:d.legacyCoachPhase})));
 export function isCoachDate(value){if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;const d=new Date(value+'T00:00:00Z');return !Number.isNaN(+d)&&d.toISOString().slice(0,10)===value;}
 export function normalizeCoachOptions(input={}){
  const purpose=input.purpose??'warmup',minutes=Number(input.availableMinutes??30),location=input.location??'gym',equipment=input.equipment??[];
@@ -41,7 +32,7 @@ export function buildLocalCoachContext(state,{referenceDate,windowDays=28}={}){
   const row={conditionKey,...condition,metricBasis:metric.metricBasis,bestKg:metric.valueKg};
   if(!previous||row.bestKg>previous.bestKg)groups.set(conditionKey,row);
  }
- return {schemaVersion:coachSchemaVersion,referenceDate,window:{fromDate,toDate:referenceDate,days:windowDays},recordCount:rows.length,climbingDays:new Set(rows.filter(r=>['gym','outdoor'].includes(r.kind)).map(r=>r.date)).size,routineCount:routines.length,routineSets:routines.reduce((n,r)=>n+trainingVolume(r).sets,0),routineReps:routines.reduce((n,r)=>n+trainingVolume(r).reps,0),measurementGroups:[...groups.values()],hasTodayCondition:(state.dailyJournals||[]).some(r=>r?.date===referenceDate&&r.condition&&Object.values(r.condition).some(v=>v!=null&&String(v).trim()!=='')),hasWrittenGoal:Boolean(String(state.goals?.focus||'').trim())};
+ return {schemaVersion:coachSchemaVersion,referenceDate,window:{fromDate,toDate:referenceDate,days:windowDays},recordCount:rows.length,climbingDays:new Set(rows.filter(r=>['gym','outdoor'].includes(r.kind)).map(r=>r.date)).size,routineCount:routines.length,routineSets:routines.reduce((n,r)=>n+trainingVolume(r).sets,0),routineReps:routines.reduce((n,r)=>n+trainingVolume(r).reps,0),measurementGroups:[...groups.values()],routineExercises:summarizeRoutineExercises(routines),hasTodayCondition:(state.dailyJournals||[]).some(r=>r?.date===referenceDate&&r.condition&&Object.values(r.condition).some(v=>v!=null&&String(v).trim()!=='')),hasWrittenGoal:Boolean(String(state.goals?.focus||'').trim())};
 }
 export function buildCoachRequest(state,options,referenceDate){return {schemaVersion:coachSchemaVersion,options:normalizeCoachOptions(options),context:buildLocalCoachContext(state,{referenceDate}),dataPolicy:{scope:'deviceOnly',externalTransmissionAllowed:false}};}
 // A response contract, not a prescription: numerical bounds only protect the UI.

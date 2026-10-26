@@ -57,3 +57,7 @@
 - `node tests/browser/coach.mjs`: PC1280px、スマホ390px/320pxで入口、画面遷移、条件変更、履歴更新、空状態、テーマ、横はみ出し、生成無効を確認。外部へのリクエストと入力による保存がないことを確認。
 - ブラウザー実行には既存の `tests/browser/pixel-life.mjs` と同じPlaywright設定を使用します。テスト画像は一時フォルダへ出力します。
 - 実AIの品質・速度・費用、実SupabaseでのAI連携は未検証です。今回AIへの接続自体はありません。
+
+## 種目マスター整備（2026-10-26）
+[種目マスター仕様](exercise-registry.md) に共通ID・器具・左右・動作説明・AI候補の条件を整理しました。新しいローカルの提案検証はcoach-foundation.mjsのschemaVersion=2を使用し、既存v1の形だけの検査とは分離します。外部AIは引き続き未接続です。
+[開発・利用料の見積もり](ai-estimate.md) を参照してください。
