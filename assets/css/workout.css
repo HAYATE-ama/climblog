@@ -30,3 +30,18 @@
 
 /* Keep the selected course start action ahead of long exercise lists. */
 .workoutStartPanel{margin:8px 0 20px}.workoutStartPanel>.workoutWide{margin-top:0;min-height:50px!important}.workoutStartPanel>.sub{margin:8px 0 0;line-height:1.7}
+
+/* Timer states have distinct large surfaces and explicit text, without flashing. */
+#workoutView[data-timer-state=work]{--timerSurface:#3c1d22;--timerLine:#9e4f5c;--timerInk:#fff1f2;--timerMuted:#efd0d6;--timerAccent:#ffadb8}
+#workoutView[data-timer-state=rest]{--timerSurface:#153b2c;--timerLine:#49856b;--timerInk:#eafff1;--timerMuted:#c2e6d3;--timerAccent:#93e4b4}
+body[data-theme=light] #workoutView[data-timer-state=work]{--timerSurface:#ffeaed;--timerLine:#c66a79;--timerInk:#5e1726;--timerMuted:#753746;--timerAccent:#a6213d}
+body[data-theme=light] #workoutView[data-timer-state=rest]{--timerSurface:#e3f5e9;--timerLine:#609e78;--timerInk:#123e27;--timerMuted:#345e43;--timerAccent:#1b683b}
+#workoutView[data-timer-state=work],#workoutView[data-timer-state=rest]{background:var(--timerSurface);border-radius:16px;padding:16px;box-sizing:border-box;color:var(--timerInk)}
+#workoutView[data-timer-state=work] .workoutRun,#workoutView[data-timer-state=rest] .workoutRun{max-width:680px;background:var(--timerSurface);border-color:var(--timerLine);color:var(--timerInk)}
+#workoutView[data-timer-state=work] .workoutState,#workoutView[data-timer-state=rest] .workoutState{color:var(--timerAccent);font-size:18px}
+#workoutView[data-timer-state=work] .sub,#workoutView[data-timer-state=rest] .sub,#workoutView[data-timer-state=work] .workoutEyebrow,#workoutView[data-timer-state=rest] .workoutEyebrow,#workoutView[data-timer-state=work] .exerciseCount,#workoutView[data-timer-state=rest] .exerciseCount{color:var(--timerMuted)}
+#workoutView[data-timer-state=work] .exerciseGuide{color:var(--timerInk)}
+#workoutView[data-timer-state=paused] .workoutRun{background:var(--panel);border-color:var(--line)}
+#workoutView[data-timer-state=paused] .workoutState{color:var(--text)}
+.workoutSoundControls{margin:18px 0}.workoutSoundControls .sub{margin:8px 0}.workoutNext span{display:block;font-size:16px;font-weight:600;overflow-wrap:anywhere}.workoutRun .workoutNext{background:var(--panel2)!important;color:var(--text)}
+@media(max-width:650px){#workoutView[data-timer-state=work],#workoutView[data-timer-state=rest]{padding:8px}.workoutRun .workoutState{font-size:16px}}

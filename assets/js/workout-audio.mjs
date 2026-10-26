@@ -1,0 +1,11 @@
+// Cue decisions are independent of audio hardware and never replay missed seconds.
+export function createCountdownCues(){let phaseKey=null;const heard=new Set();return {reset(){phaseKey=null;heard.clear();},take(session,remaining){if(session?.status!=='running'||!Number.isFinite(remaining)||remaining<=0)return null;const key=session.id+':'+session.phaseIndex;if(key!==phaseKey){phaseKey=key;heard.clear();}const second=Math.ceil(remaining);if(second>3||heard.has(second))return null;heard.add(second);return second;}};}
+const patterns={countdown:[[880,0,.09]],work:[[1046,0,.32]],rest:[[440,0,.28]],complete:[[660,0,.18],[880,.23,.28]]};
+export function createWorkoutAudio({contextFactory=()=>{const Context=globalThis.AudioContext||globalThis.webkitAudioContext;if(!Context)throw new Error('Audio unavailable');return new Context();}}={}){
+ let context=null,state='idle';const active=new Set();
+ function stop(){for(const oscillator of active){try{oscillator.stop();}catch{}}active.clear();}
+ return {stop,status:()=>state==='ready'&&context?.state!=='running'?'unavailable':state,
+ async enable(){try{context ||= contextFactory();if(context.state!=='running'){let timer;try{await Promise.race([context.resume(),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('Audio blocked')),1000);})]);}finally{clearTimeout(timer);}}if(context.state!=='running')throw new Error('Audio blocked');state='ready';return true;}catch{state='unavailable';stop();return false;}},
+ play(kind){if(state!=='ready'||context?.state!=='running'){if(state==='ready')state='unavailable';return false;}try{for(const [frequency,offset,duration]of patterns[kind]||[]){const oscillator=context.createOscillator(),gain=context.createGain(),start=context.currentTime+offset;oscillator.connect(gain);gain.connect(context.destination);gain.gain.setValueAtTime(.0001,start);gain.gain.exponentialRampToValueAtTime(.06,start+.01);gain.gain.exponentialRampToValueAtTime(.0001,start+duration);oscillator.frequency.value=frequency;oscillator.onended=()=>{active.delete(oscillator);oscillator.disconnect();gain.disconnect();};active.add(oscillator);oscillator.start(start);oscillator.stop(start+duration+.01);}return true;}catch{state='unavailable';stop();return false;}}
+ };
+}
