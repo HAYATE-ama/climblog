@@ -1,3 +1,4 @@
+import {exerciseIdentity} from './exercise-registry.mjs';
 import {trainingExerciseNames} from './exercise-catalog.mjs';
 import {clone} from './data-utils.mjs';
 import {applySetDetails} from './training-model.mjs';
@@ -12,7 +13,7 @@ export function normalizeWorkoutPlan(input){
  const preparationSeconds=number(input.preparationSeconds??0,0,10,'開始前カウントダウン',true);if(![0,3,5,10].includes(preparationSeconds))throw new Error('開始前カウントダウンは、なし・3秒・5秒・10秒から選択してください。');
  const ids=new Set();let total=0;
  const exercises=input.exercises.map(e=>{if(!identifier(e.id)||ids.has(e.id)||typeof e.name!=='string'||!e.name.trim()||e.name.length>100||!['time','reps'].includes(e.mode)||!Array.isArray(e.sets)||!e.sets.length||e.sets.length>100)throw new Error('種目・セットの設定が不正です。');ids.add(e.id);total+=e.sets.length;
- return {id:e.id,name:e.name.trim(),mode:e.mode,loadMethod:['added','liftFromGround','bodyweight'].includes(e.loadMethod)?e.loadMethod:'bodyweight',sets:e.sets.map(s=>({target:number(s.target,1,e.mode==='time'?3600:1000,'秒数・回数',true),loadKg:number(s.loadKg??0,0,1000,'重量'),restSeconds:number(s.restSeconds??30,0,3600,'休憩時間',true)}))};});
+ return {id:e.id,name:e.name.trim(),...exerciseIdentity(e.name),mode:e.mode,loadMethod:['added','liftFromGround','bodyweight'].includes(e.loadMethod)?e.loadMethod:'bodyweight',sets:e.sets.map(s=>({target:number(s.target,1,e.mode==='time'?3600:1000,'秒数・回数',true),loadKg:number(s.loadKg??0,0,1000,'重量'),restSeconds:number(s.restSeconds??30,0,3600,'休憩時間',true)}))};});
  if(total>300)throw new Error('1回のトレーニングは合計300セットまでです。');
  return {schemaVersion:1,preparationSeconds,title:input.title.trim(),place:typeof input.place==='string'?input.place.slice(0,100):'自宅',transitionRestSeconds:number(input.transitionRestSeconds??60,0,3600,'種目間の休憩',true),exercises};
 }

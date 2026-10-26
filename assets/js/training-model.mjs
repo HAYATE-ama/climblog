@@ -1,3 +1,4 @@
+import {withExerciseIdentity} from './exercise-registry.mjs';
 import {clone} from './data-utils.mjs';
 export function normalizeSetDetails(rows){
   if(!Array.isArray(rows)||!rows.length||rows.length>200)throw new Error('セットを1〜200件で入力してください。');
@@ -9,7 +10,7 @@ export function trainingVolume(record){
 }
 export function applySetDetails(record,rows){
   const setDetails=normalizeSetDetails(rows),volume=trainingVolume({setDetails}),weights=setDetails.map(row=>row.loadKg),reps=setDetails.map(row=>row.reps),lo=Math.min(...weights),hi=Math.max(...weights);
-  return {...record,setDetails,sets:volume.sets,reps:reps.every(value=>value===reps[0])?reps[0]:0,loadKg:hi,summary:[`${volume.sets}セット`,`合計${volume.reps}回`,volume.holdSeconds?`保持合計${volume.holdSeconds}秒`:null,`${lo===hi?hi:lo+'〜'+hi}kg`,record.durationMinutes?`${record.durationMinutes}分`:null].filter(Boolean).join(' · ')};
+  return {...withExerciseIdentity(record),setDetails,sets:volume.sets,reps:reps.every(value=>value===reps[0])?reps[0]:0,loadKg:hi,summary:[`${volume.sets}セット`,`合計${volume.reps}回`,volume.holdSeconds?`保持合計${volume.holdSeconds}秒`:null,`${lo===hi?hi:lo+'〜'+hi}kg`,record.durationMinutes?`${record.durationMinutes}分`:null].filter(Boolean).join(' · ')};
 }
 export function makePairedLifts(base,right,left){
   const values=[right,left];if(values.some(value=>value==null||String(value).trim()===''||!Number.isFinite(Number(value))||Number(value)<0||Number(value)>1000))throw new Error('右手・左手それぞれの重量を入力してください。');
