@@ -7,6 +7,7 @@ export const climbingCourses=[
  {id:'pull-shoulder',category:'strength',title:'引く力・肩まわり',equipment:'懸垂バー・バンド・固定点',items:[row('自重懸垂','reps',5,2,60),row('バンドロー','reps',10,2,30),row('バンド外旋（肩）','reps',10,2,30),row('腕立て伏せ','reps',8,2,45)]},
  {id:'hip-mobility',category:'mobility',title:'股関節・足上げ',equipment:'マット・壁',items:[...sides('片膝立ちの股関節前面ストレッチ','time',30),row('バタフライストレッチ（合せき）','time',30),...sides('仰向けフィギュアフォー','time',30),...sides('カーフストレッチ','time',30)]},
  {id:'upper-mobility',category:'mobility',title:'肩・背中・上半身',equipment:'マット・戸口',items:[...sides('ドアウェイ・チェストストレッチ','time',30),row('チャイルドポーズ','time',30),...sides('オープンブック','reps',5),...sides('手首の屈筋ストレッチ','time',20),...sides('手首の伸筋ストレッチ','time',20)]},
+ {id:'home-static',category:'mobility',title:'自宅で全身・静的ストレッチ',equipment:'マット（反動をつけず各20秒保持）',items:[row('バタフライストレッチ（合せき）','time',20),...sides('仰向けフィギュアフォー','time',20),...sides('片膝立ちの股関節前面ストレッチ','time',20),row('チャイルドポーズ','time',20),...sides('手首の屈筋ストレッチ','time',20),...sides('手首の伸筋ストレッチ','time',20)]},
  {id:'warmup-free',category:'warmup',title:'道具なし・登る前の準備',equipment:'支えになる壁・クライミングウォール',items:[row('その場足踏み','time',60),row('アームサークル','time',30),...sides('レッグスイング','reps',10),row('手首回し','time',30),row('軽いクライミング','reps',1)]},
  {id:'warmup-band',category:'warmup',title:'ゴムバンドで準備',equipment:'軽いバンド・固定点・クライミングウォール',items:[row('その場足踏み','time',60),row('バンドプルアパート','reps',10),row('バンド外旋（肩）','reps',10),row('バンドロー','reps',10),row('手首回し','time',30),row('軽いクライミング','reps',1)]}
 ];
