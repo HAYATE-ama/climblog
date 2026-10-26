@@ -27,3 +27,6 @@
 /* The training entrance contains saved menus only. Templates live in creation. */
 #workoutView .workoutUsualMenus>.workoutWide.primary{background:var(--orange)!important;color:#211408!important;border-color:var(--orange)!important}
 .workoutCreationChoices{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;margin:20px 0}.workoutCreationChoices>button{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;text-align:left!important;padding:18px!important}.workoutCreationChoices strong{display:block;font-size:15px}.workoutCreationChoices small{display:block;color:var(--muted);line-height:1.8;margin-top:5px}.workoutCreationChoices>button>span:first-child{min-width:0;overflow-wrap:anywhere}.workoutCreationChoices>button>span:last-child{color:var(--orange)}.workoutEmpty{padding:24px 0;text-align:center}
+
+/* Keep the selected course start action ahead of long exercise lists. */
+.workoutStartPanel{margin:8px 0 20px}.workoutStartPanel>.workoutWide{margin-top:0;min-height:50px!important}.workoutStartPanel>.sub{margin:8px 0 0;line-height:1.7}
