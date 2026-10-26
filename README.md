@@ -2,6 +2,10 @@
 
 これまでの画面（カレンダー・記録編集・ジムごとのグレード設定・統計）を引き継いだ個人用Webアプリです。Supabase Authでログインし、記録をアカウント専用のPostgres行に保存します。iPhone/PC対応です。
 
+## 開発時のルール
+
+変更前に [AGENTS.md](AGENTS.md) と [開発・運用ルール](docs/development-rules.md) を確認してください。このリポジトリだけを作業対象とし、兄弟アプリを変更しません。
+
 ## Supabaseの準備
 1. SupabaseでFree projectを作成します。
 2. SQL Editorで `supabase/schema.sql` を実行し、保存テーブルとRLSアクセス制御を作成します。
