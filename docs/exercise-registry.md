@@ -14,7 +14,7 @@
 - sidedness：separateSides=左右別、alternatingPair=左右交互を1組、both=左右同時、unspecified=動作未特定。
 - requiredEquipment/optionalEquipment：必須/任意の器具。未特定項目はequipmentKnown=false。バンドの固定点をバンド本体と区別します。
 - phases：準備/主運動/整理運動。stretchType：静的/動的。loadBasis：体重＋追加荷重、外部重量のみ、バンド、自重、負荷なし、未特定。
-- guide：一言説明、数え方、3段階の手順、注意点、参考先、既存の姿勢図。
+- guide：一言説明、数え方、3段階の手順、注意点、参考先。動作図はexercise-illustrations.mjsから同じ種目IDで参照します。
 - readiness/aiDraftEligible：説明の不足や動作の曖昧さ、負荷条件の検討が必要な種目を分離。未知の自作種目の説明は推測しません。
 
 ## ファイルの責務
