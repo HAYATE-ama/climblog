@@ -72,3 +72,12 @@ export function prepareWorkoutSave(state,session,now=Date.now()){
  return {alreadySaved:false,recordIds:records.map(r=>r.id),patch:{records:[...(state.records||[]),...records],workoutReceipts:[...(state.workoutReceipts||[]),{id:s.id,date:s.date,savedAt:new Date(now).toISOString(),recordIds:records.map(r=>r.id)}]}};
 }
 export function workoutAsMenu(plan){const p=normalizeWorkoutPlan(plan);return {name:p.title,workoutPlan:p,entries:p.exercises.map(e=>applySetDetails({kind:'training',trainingMode:'routine',exerciseName:e.name,grade:e.name,place:p.place,trainingPlace:p.place,loadMethod:e.loadMethod,swatch:'#b58cff',durationMinutes:0,rpe:0,sends:0,tries:0,memo:''},e.sets.map(s=>({reps:e.mode==='reps'?s.target:0,holdSeconds:e.mode==='time'?s.target:0,loadKg:s.loadKg}))))};}
+
+// Move complete exercise objects, preserving per-set values and stable exercise identity.
+export function moveWorkoutExercise(plan,exerciseId,direction){
+ if(direction!==-1&&direction!==1)throw new Error('移動方向を確認してください。');
+ const next=normalizeWorkoutPlan(plan),index=next.exercises.findIndex(e=>e.id===exerciseId),target=index+direction;
+ if(index<0||target<0||target>=next.exercises.length)throw new Error('この位置には移動できません。');
+ [next.exercises[index],next.exercises[target]]=[next.exercises[target],next.exercises[index]];
+ return next;
+}
