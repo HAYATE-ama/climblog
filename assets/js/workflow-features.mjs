@@ -9,10 +9,12 @@ export function findPreviousRecords(records,{kind,date,gymName,trainingMode='rou
 }
 
 export function copyRecordForDate(record,date,weightHistory){
-  const {id,date:oldDate,batchSessionId,createdAt,updatedAt,...values}=record;
+  const {id,date:oldDate,batchSessionId,createdAt,updatedAt,workoutSessionId,workoutTitle,workoutStartedAt,workoutFinishedAt,sessionSetResults,feedbackScope,...values}=record;
+  values.recordSource='copy';
   if(values.kind==='gym')values.gymOutcome=values.gymOutcome||'completed';
   if(values.kind==='training'){
     values.trainingMode=values.trainingMode||'routine';
+    values.rpe=0;
     values.bodyweightKg=getBodyWeightForDate(weightHistory,date);
     if(values.trainingMode==='maxTest')values.totalLoadKg=values.maxType==='singleHandLift'?Number(values.addedWeightKg):calculateTotalLoad(values.addedWeightKg,values.bodyweightKg);
   }

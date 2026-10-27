@@ -1,3 +1,4 @@
+import {trainingDataQuality} from './training-data-quality.mjs';
 import {summarizeRoutineExercises} from './exercise-history.mjs';
 import {exerciseDefinitions,equipmentCatalog} from './exercise-registry.mjs';
 // Stable local contracts for the future AI adapter. This module does not send data.
@@ -32,7 +33,7 @@ export function buildLocalCoachContext(state,{referenceDate,windowDays=28}={}){
   const row={conditionKey,...condition,metricBasis:metric.metricBasis,bestKg:metric.valueKg};
   if(!previous||row.bestKg>previous.bestKg)groups.set(conditionKey,row);
  }
- return {schemaVersion:coachSchemaVersion,referenceDate,window:{fromDate,toDate:referenceDate,days:windowDays},recordCount:rows.length,climbingDays:new Set(rows.filter(r=>['gym','outdoor'].includes(r.kind)).map(r=>r.date)).size,routineCount:routines.length,routineSets:routines.reduce((n,r)=>n+trainingVolume(r).sets,0),routineReps:routines.reduce((n,r)=>n+trainingVolume(r).reps,0),measurementGroups:[...groups.values()],routineExercises:summarizeRoutineExercises(routines),hasTodayCondition:(state.dailyJournals||[]).some(r=>r?.date===referenceDate&&r.condition&&Object.values(r.condition).some(v=>v!=null&&String(v).trim()!=='')),hasWrittenGoal:Boolean(String(state.goals?.focus||'').trim())};
+ return {schemaVersion:coachSchemaVersion,referenceDate,window:{fromDate,toDate:referenceDate,days:windowDays},recordCount:rows.length,climbingDays:new Set(rows.filter(r=>['gym','outdoor'].includes(r.kind)).map(r=>r.date)).size,routineCount:routines.length,routineSets:routines.reduce((n,r)=>n+trainingVolume(r).sets,0),routineReps:routines.reduce((n,r)=>n+trainingVolume(r).reps,0),measurementGroups:[...groups.values()],routineExercises:summarizeRoutineExercises(routines),trainingDataQuality:trainingDataQuality(routines),hasTodayCondition:(state.dailyJournals||[]).some(r=>r?.date===referenceDate&&r.condition&&Object.values(r.condition).some(v=>v!=null&&String(v).trim()!=='')),hasWrittenGoal:Boolean(String(state.goals?.focus||'').trim())};
 }
 export function buildCoachRequest(state,options,referenceDate){return {schemaVersion:coachSchemaVersion,options:normalizeCoachOptions(options),context:buildLocalCoachContext(state,{referenceDate}),dataPolicy:{scope:'deviceOnly',externalTransmissionAllowed:false}};}
 // A response contract, not a prescription: numerical bounds only protect the UI.
