@@ -24,6 +24,8 @@ const poses={
  bandRow:[['固定点に向かって腕を伸ばす','M119 43 L119 80 M119 51 L67 56 M119 80 L102 111 M119 80 L136 111',[119,30],'M37 16V112 M37 56H67'],['肘を後ろへ引いて戻す','M119 43 L119 80 M119 51 L145 64 L111 61 M119 80 L102 111 M119 80 L136 111',[119,30],'M37 16V112 M37 56L111 61']]
 };
 poses.frontPlank=basePoses.plank;poses.birdDog=basePoses.bird;poses.gluteBridge=basePoses.bridge;poses.pushup=basePoses.pushup;
+poses.assistedOpenHang=[['両手で持ち、両足を接地','M106 52L106 83 M106 58L82 42L82 20 M106 58L130 42L130 20 M106 83L88 101L88 116L98 116 M106 83L124 101L124 116L134 116',[106,40],'M62 12H150V21H62Z'],['足で支えたまま保持','M106 58L106 88 M106 64L82 44L82 20 M106 64L130 44L130 20 M106 88L82 100L88 116L98 116 M106 88L130 100L124 116L134 116',[106,46],'M62 12H150V21H62Z']];
+poses.assistedHalfCrimpHang=[['親指は重ねず両足を接地','M106 52L106 83 M106 58L82 42L82 20 M106 58L130 42L130 20 M106 83L88 101L88 116L98 116 M106 83L124 101L124 116L134 116',[106,40],'M62 12H150V21H62Z'],['握り方を保ち、足で調整','M106 58L106 88 M106 64L82 44L82 20 M106 64L130 44L130 20 M106 88L82 100L88 116L98 116 M106 88L130 100L124 116L134 116',[106,46],'M62 12H150V21H62Z']];
 export const illustratedExerciseIds=Object.freeze(Object.keys(poses));
 export function hasExerciseIllustration(name){const id=resolveExercise(name)?.definition.exerciseId;return Boolean(id&&Object.hasOwn(poses,id));}
 function svgPose(pose,label,decorative){const [caption,path,head,props]=pose;return `<svg viewBox="0 0 210 125" ${decorative?'aria-hidden="true"':`role="img" aria-label="${esc(label+'：'+caption)}"`}><path class="exerciseFloor" d="M12 116H198"/>${props?`<path class="exerciseProp" d="${props}"/>`:''}<circle cx="${head[0]}" cy="${head[1]}" r="9"/><path d="${path}"/></svg>`;}

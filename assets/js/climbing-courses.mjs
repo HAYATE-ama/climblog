@@ -4,6 +4,8 @@ const row=(name,mode,target,sets=1,rest=20)=>{const match=resolveExercise(name);
 const sides=(name,mode,target,sets=1,rest=15)=>['左','右'].map(side=>row(name+'（'+side+'）',mode,target,sets,rest));
 export const courseCategories=[['strength','筋トレ'],['mobility','柔軟'],['warmup','ウォーミングアップ']];
 const courseRows=[
+ {id:'finger-open',category:'strength',title:'指トレ・オープンハンド（足補助）',equipment:'ハングボード・両足で安定して支えられる環境',items:[row('足補助ハング（オープンハンド）','time',5,3,60)]},
+ {id:'finger-half-crimp',category:'strength',title:'指トレ・ハーフクリンプ（足補助）',equipment:'ハングボード・両足で安定して支えられる環境',items:[row('足補助ハング（ハーフクリンプ）','time',5,3,60)]},
  {id:'core-control',category:'strength',title:'体幹・姿勢づくり',equipment:'マット',items:[row('プランク','time',30,2,30),...sides('サイドプランク','time',20),row('バードドッグ','reps',6,2,30),row('ヒップリフト','reps',10,2,30)]},
  {id:'pull-shoulder',category:'strength',title:'引く力・肩まわり',equipment:'懸垂バー・バンド・固定点',items:[row('自重懸垂','reps',5,2,60),row('バンドロー','reps',10,2,30),row('バンド外旋（肩）','reps',10,2,30),row('腕立て伏せ','reps',8,2,45)]},
  {id:'hip-mobility',category:'mobility',title:'股関節・足上げ',equipment:'マット・壁',items:[...sides('片膝立ちの股関節前面ストレッチ','time',30),row('バタフライストレッチ（合せき）','time',30),...sides('仰向けフィギュアフォー','time',30),...sides('カーフストレッチ','time',30)]},
