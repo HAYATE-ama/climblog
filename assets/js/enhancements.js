@@ -1,3 +1,4 @@
+import {installOutdoorWeather} from './outdoor-weather.mjs';
 import {installSettingsDrawer} from './settings-drawer.mjs';
 import {installRecordViewer} from './record-viewer.mjs';
 import {installWorkoutScreen} from './workout-screen.mjs';
@@ -118,4 +119,4 @@ installTrainingStudio({recordApi,states,panels,setControl,fillDraft,renderDrafts
 installLifeTools();installPixelCompanion();installPwa();installCoachScreen();installWorkoutScreen();installRecordViewer();
 installRecordWorkflow({recordApi,states,panels,setControl,snapshotForm,restoreForm,fillDraft,clearForm,syncGrade,updateOutcome,renderDrafts,updateTrainingWeightInfo});
 
-installSettingsDrawer();
+installSettingsDrawer();installOutdoorWeather();
