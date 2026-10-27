@@ -1,23 +1,24 @@
+import {isRecordedLoad,loadRecordedMetadata} from './training-conditions.mjs';
 import {withExerciseIdentity} from './exercise-registry.mjs';
 import {clone} from './data-utils.mjs';
 export function normalizeSetDetails(rows){
   if(!Array.isArray(rows)||!rows.length||rows.length>200)throw new Error('セットを1〜200件で入力してください。');
-  return rows.map((row,index)=>{const result={reps:Number(row.reps||0),loadKg:Number(row.loadKg||0),holdSeconds:Number(row.holdSeconds||0)};for(const [key,value] of Object.entries(result))if(!Number.isFinite(value)||value<0||value>({reps:1000,loadKg:1000,holdSeconds:3600}[key]))throw new Error(`${index+1}セット目の数値を確認してください。`);if(!Number.isInteger(result.reps))throw new Error('回数は整数で入力してください。');if(!result.reps&&!result.holdSeconds)throw new Error(`${index+1}セット目に回数か保持時間を入力してください。`);return result;});
+  return rows.map((row,index)=>{const result={reps:Number(row.reps||0),loadKg:Number(row.loadKg||0),holdSeconds:Number(row.holdSeconds||0)};for(const [key,value] of Object.entries(result))if(!Number.isFinite(value)||value<0||value>({reps:1000,loadKg:1000,holdSeconds:3600}[key]))throw new Error(`${index+1}セット目の数値を確認してください。`);if(!Number.isInteger(result.reps))throw new Error('回数は整数で入力してください。');if(!result.reps&&!result.holdSeconds)throw new Error(`${index+1}セット目に回数か保持時間を入力してください。`);return {...result,...loadRecordedMetadata(row)};});
 }
 export function trainingVolume(record){
-  if(Array.isArray(record.setDetails)&&record.setDetails.length){const rows=record.setDetails;return {sets:rows.length,reps:rows.reduce((n,row)=>n+(Number(row.reps)||0),0),holdSeconds:rows.reduce((n,row)=>n+(Number(row.holdSeconds)||0),0),loadTotal:rows.reduce((n,row)=>n+(Number(row.loadKg)||0),0),loadCount:rows.length};}
+  if(Array.isArray(record.setDetails)&&record.setDetails.length){const rows=record.setDetails;return {sets:rows.length,reps:rows.reduce((n,row)=>n+(Number(row.reps)||0),0),holdSeconds:rows.reduce((n,row)=>n+(Number(row.holdSeconds)||0),0),loadTotal:rows.filter(row=>isRecordedLoad(row,record.loadMethod)).reduce((n,row)=>n+(Number(row.loadKg)||0),0),loadCount:rows.filter(row=>isRecordedLoad(row,record.loadMethod)).length};}
   const sets=Number(record.sets)||0;return {sets,reps:sets*(Number(record.reps)||0),holdSeconds:0,loadTotal:(Number(record.loadKg)||0)*sets,loadCount:sets};
 }
 export function applySetDetails(record,rows){
-  const setDetails=normalizeSetDetails(rows),volume=trainingVolume({setDetails}),weights=setDetails.map(row=>row.loadKg),reps=setDetails.map(row=>row.reps),lo=Math.min(...weights),hi=Math.max(...weights);
-  return {...withExerciseIdentity(record),setDetails,sets:volume.sets,reps:reps.every(value=>value===reps[0])?reps[0]:0,loadKg:hi,summary:[`${volume.sets}セット`,`合計${volume.reps}回`,volume.holdSeconds?`保持合計${volume.holdSeconds}秒`:null,`${lo===hi?hi:lo+'〜'+hi}kg`,record.durationMinutes?`${record.durationMinutes}分`:null].filter(Boolean).join(' · ')};
+  const setDetails=normalizeSetDetails(rows),volume=trainingVolume({setDetails,loadMethod:record.loadMethod}),weights=setDetails.filter(row=>isRecordedLoad(row,record.loadMethod)).map(row=>row.loadKg),reps=setDetails.map(row=>row.reps),lo=weights.length?Math.min(...weights):0,hi=weights.length?Math.max(...weights):0;
+  return {...withExerciseIdentity(record),setDetails,sets:volume.sets,reps:reps.every(value=>value===reps[0])?reps[0]:0,loadKg:hi,summary:[`${volume.sets}セット`,`合計${volume.reps}回`,volume.holdSeconds?`保持合計${volume.holdSeconds}秒`:null,weights.length?`${lo===hi?hi:lo+'〜'+hi}kg${weights.length<setDetails.length?'（未記録あり）':''}`:'重量未記録',record.durationMinutes?`${record.durationMinutes}分`:null].filter(Boolean).join(' · ')};
 }
 export function makePairedLifts(base,right,left){
   const values=[right,left];if(values.some(value=>value==null||String(value).trim()===''||!Number.isFinite(Number(value))||Number(value)<0||Number(value)>1000))throw new Error('右手・左手それぞれの重量を入力してください。');
   return ['right','left'].map((hand,index)=>({...clone(base),liftHand:hand,addedWeightKg:Number(values[index]),loadKg:Number(values[index]),totalLoadKg:Number(values[index]),summary:[({open:'オープン',halfCrimp:'ハーフクリンプ',fullCrimp:'フルクリンプ'}[base.gripType]||''),base.edgeDepthMm?base.edgeDepthMm+'mm':null,hand==='right'?'右手':'左手','挙上 '+Number(values[index])+'kg'].filter(Boolean).join(' · ')}));
 }
 export function menuEntry(record){
-  const keys=['kind','trainingMode','place','trainingPlace','exerciseName','grade','sets','reps','durationMinutes','loadKg','rpe','memo','loadMethod','setDetails','swatch','summary'];
+  const keys=['kind','trainingMode','place','trainingPlace','exerciseName','grade','sets','reps','durationMinutes','loadKg','rpe','memo','loadMethod','setDetails','swatch','summary','fingerConditions','gripType','edgeDepthMm'];
   const value=Object.fromEntries(keys.filter(key=>record[key]!==undefined).map(key=>[key,clone(record[key])]));return {...value,kind:'training',trainingMode:'routine',sends:0,tries:0};
 }
 export function summarizeTraining(records){
