@@ -18,7 +18,7 @@ if(!localStorage.getItem('__dashboardSeed')){localStorage.setItem('climbLogRecor
 document.querySelector('#authScreen').hidden=true;document.querySelector('#authScreen').style.display='none';document.querySelector('#appRoot').hidden=false;document.querySelector('#syncState').textContent='ローカル動作確認';await import('/assets/js/app.js');await import('/assets/js/enhancements.js');window.__appReady=true;`;
 let generation='old';
 const server=http.createServer((req,res)=>{
- if(req.url==='/service-worker.js'){res.writeHead(200,{'Content-Type':'text/javascript; charset=utf-8','Cache-Control':'no-store'});res.end(fs.readFileSync(path.join(root,'service-worker.js'),'utf8').replace('climblog-shell-20261027-rain-mobile2-','climblog-shell-upgrade-'+generation+'-'));return;}
+ if(req.url==='/service-worker.js'){res.writeHead(200,{'Content-Type':'text/javascript; charset=utf-8','Cache-Control':'no-store'});res.end(fs.readFileSync(path.join(root,'service-worker.js'),'utf8').replace(/climblog-shell-[^']*-/,'climblog-shell-upgrade-'+generation+'-'));return;}
  if(req.url==='/'){res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});res.end(fs.readFileSync(path.join(root,'index.html'),'utf8'));return;}
  if(req.url==='/api/private'){res.writeHead(200,{'Content-Type':'application/json'});res.end('{"secret":true}');return;}
  if(req.url==='/test.html'){res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});res.end(fs.readFileSync(path.join(root,'index.html'),'utf8').replace('<script src="./config.js"></script><script type="module" src="./assets/js/cloud.js"></script>',`<script type="module">${bootstrap}</script>`));return;}
