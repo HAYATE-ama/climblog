@@ -1,3 +1,4 @@
+import {validateOutdoorSettings} from './outdoor-settings-model.mjs';
 import {normalizeWorkoutPlan} from './workout-model.mjs';
 import {clone} from './data-utils.mjs';
 import {normalizeSetDetails} from './training-model.mjs';
@@ -21,6 +22,7 @@ export function validateBackup(value){
  for(const row of value.recycleBin||[])recordValid(row.record);
  for(const row of value.recordHistory||[]){if(!idValid(row.recordId)||!row.before&&!row.after)throw new Error('編集履歴の形式が不正です。');for(const r of [row.before,row.after])if(r){recordValid(r);if(r.id!==row.recordId)throw new Error('編集履歴のIDが一致しません。');}}
  for(const key of ['goals','preferences','bodyProfile'])if(value[key]!=null&&(typeof value[key]!=='object'||Array.isArray(value[key])))throw new Error(key+'の形式が不正です。');
+ if(value.preferences?.outdoorPlanning!=null)validateOutdoorSettings(value.preferences.outdoorPlanning);
  if(value.preferences?.theme&&!['dark','light','system'].includes(value.preferences.theme))throw new Error('テーマ設定が不正です。');
  for(const key of ['focus','plan','reflection'])if(value.goals?.[key]!=null&&typeof value.goals[key]!=='string')throw new Error('目標の形式が不正です。');
  for(const key of ['heightCm','reachCm'])if(value.bodyProfile?.[key]!=null&&(!Number.isFinite(Number(value.bodyProfile[key]))||Number(value.bodyProfile[key])<0||Number(value.bodyProfile[key])>300))throw new Error('身体設定の形式が不正です。');
