@@ -5,7 +5,7 @@ export function prepareRecordCommit(records,entries,{editingId=null,date,history
   if(!entries.length)throw new Error('記録する項目がありません。');
   const next=clone(records),changes=clone(history),ids=[];
   if(editingId){if(entries.length!==1)throw new Error('編集中の記録は1件ずつ更新してください。');const index=next.findIndex(row=>row.id===editingId);if(index<0)throw new Error('編集中の記録が見つかりません。');const before=next[index],after={...before,...clone(entries[0]),id:before.id,date:before.date,updatedAt:now};if(stableJson(comparable(before))!==stableJson(comparable(after)))changes.push(historyEntry('edit',before,after,now,createId()));next[index]=after;ids.push(after.id);}
-  else for(const values of entries){const row={...clone(values),id:createId(),date,createdAt:now,updatedAt:now};next.push(row);ids.push(row.id);}
+  else for(const values of entries){const row={...clone(values),recordSource:['timer','copy'].includes(values.recordSource)?values.recordSource:'manual',id:createId(),date,createdAt:now,updatedAt:now};next.push(row);ids.push(row.id);}
   return {records:next,recordHistory:changes,recordIds:ids,isNew:!editingId};
 }
 export function moveToTrash(records,trash,history,id,now=new Date().toISOString()){
