@@ -4,6 +4,7 @@ const row=(name,mode,target,sets=1,rest=20)=>{const match=resolveExercise(name);
 const sides=(name,mode,target,sets=1,rest=15)=>['左','右'].map(side=>row(name+'（'+side+'）',mode,target,sets,rest));
 export const courseCategories=[['strength','筋トレ'],['mobility','柔軟'],['warmup','ウォーミングアップ']];
 const courseRows=[
+ {id:'finger-ground-lift',category:'strength',title:'指トレ・片手リフト（地面から）',equipment:'リフティングエッジ・錘・接続器具',items:sides('片手リフト（地面から）','reps',5,3,60)},
  {id:'finger-open',category:'strength',title:'指トレ・オープンハンド（足補助）',equipment:'ハングボード・両足で安定して支えられる環境',items:[row('足補助ハング（オープンハンド）','time',5,3,60)]},
  {id:'finger-half-crimp',category:'strength',title:'指トレ・ハーフクリンプ（足補助）',equipment:'ハングボード・両足で安定して支えられる環境',items:[row('足補助ハング（ハーフクリンプ）','time',5,3,60)]},
  {id:'core-control',category:'strength',title:'体幹・姿勢づくり',equipment:'マット',items:[row('プランク','time',30,2,30),...sides('サイドプランク','time',20),row('バードドッグ','reps',6,2,30),row('ヒップリフト','reps',10,2,30)]},
@@ -16,5 +17,5 @@ const courseRows=[
 ];
 export const climbingCourses=Object.freeze(courseRows.map(course=>Object.freeze({...course,exerciseRegistryVersion,items:Object.freeze(course.items.map(Object.freeze)),requiredEquipment:Object.freeze([...new Set(course.items.flatMap(item=>resolveExercise(item.name).definition.requiredEquipment))]),optionalEquipment:Object.freeze([...new Set(course.items.flatMap(item=>resolveExercise(item.name).definition.optionalEquipment))])})));
 export function makeClimbingCourse(id,createId=()=>crypto.randomUUID()){
- const course=climbingCourses.find(c=>c.id===id);if(!course)throw new Error('コースが見つかりません。');return normalizeWorkoutPlan({title:course.title,place:course.category==='warmup'?'ジム':'自宅',preparationSeconds:5,transitionRestSeconds:course.category==='strength'?30:15,exercises:course.items.map(item=>({id:createId(),name:item.name,mode:item.mode,loadMethod:'bodyweight',sets:Array.from({length:item.sets},()=>({target:item.target,loadKg:0,restSeconds:item.rest}))}))});
+ const course=climbingCourses.find(c=>c.id===id);if(!course)throw new Error('コースが見つかりません。');return normalizeWorkoutPlan({title:course.title,place:course.category==='warmup'?'ジム':'自宅',preparationSeconds:5,transitionRestSeconds:course.category==='strength'?30:15,exercises:course.items.map(item=>({id:createId(),name:item.name,mode:item.mode,loadMethod:resolveExercise(item.name).definition.loadBasis==='externalLoadOnly'?'liftFromGround':'bodyweight',sets:Array.from({length:item.sets},()=>({target:item.target,loadKg:0,restSeconds:item.rest}))}))});
 }
