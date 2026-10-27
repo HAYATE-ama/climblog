@@ -1,3 +1,4 @@
+import {readVerifiedAccount,preloadAppModules} from './auth-startup.mjs';
 import {accountKeys,loadAccountPayload} from './account-storage.mjs';
 import {createClient} from 'https://esm.sh/@supabase/supabase-js@2';
 import {buildCloudPayload,migrateLegacyRecords} from './features.mjs';
@@ -5,6 +6,8 @@ import {createAuthStorage,policyReason,sameRemoteVersion} from './auth-policy.mj
 
 const config=window.CLIMBLOG_CONFIG||{},$=id=>document.getElementById(id),authScreen=$('authScreen'),authForm=$('authForm'),appRoot=$('appRoot'),syncStatus=$('syncState');
 const say=text=>$('authMessage').textContent=text;
+// Download public module code without executing it or reading account state.
+authForm.addEventListener('focusin',()=>preloadAppModules(document),{once:true});
 appRoot.hidden=true;
 if(!config.supabaseUrl||!config.supabasePublishableKey||config.supabaseUrl.includes('YOUR_')){
  say('Supabase設定が未入力です。config.jsを設定してから再読み込みしてください。');$('authSubmit').disabled=true;
@@ -12,7 +15,7 @@ if(!config.supabaseUrl||!config.supabasePublishableKey||config.supabaseUrl.inclu
  const origSet=Storage.prototype.setItem,origRemove=Storage.prototype.removeItem;
  const project=new URL(config.supabaseUrl).hostname.split('.')[0],prefix='climbLogAuth:'+project,tokenKey=prefix+':token',signalKey=prefix+':event',ownerKey=prefix+':owner';
  const authStore=createAuthStorage({local:localStorage,tab:sessionStorage,prefix});
- let client,user=null,ready=false,initializing=false,signup=false,submitting=false,locking=false,loadingEpoch=0,syncTimer=null,writes=Promise.resolve(),localPayload=null,remoteVersion=null,activityWriteAt=0,previousTraining=false;
+ let client,user=null,ready=false,initializing=false,signup=false,submitting=false,locking=false,loadingEpoch=0,syncTimer=null,writes=Promise.resolve(),localPayload=null,remoteVersion=null,activityWriteAt=0,previousTraining=false,appImportStarted=false;
  const pendingKey=id=>'climbLogPendingState:'+id;
  const parse=(key,fallback=null)=>{try{return JSON.parse(localStorage.getItem(key)||'null')??fallback;}catch{return fallback;}};
  const writeRaw=(key,value)=>origSet.call(localStorage,key,JSON.stringify(value));
@@ -66,6 +69,7 @@ if(!config.supabaseUrl||!config.supabasePublishableKey||config.supabaseUrl.inclu
  async function initializeApp(payload,epoch){
   const reason=policyReason(authStore.getPolicy());if(reason){await lock(reason);return;}
   loadAccountPayload(localStorage,payload,origSet,origRemove);localPayload=buildCloudPayload(localStorage);initializing=true;
+  appImportStarted=true;
   try{await import('./app.js');await import('./enhancements.js');}finally{initializing=false;}
   if(epoch!==loadingEpoch||locking)return;const finalReason=policyReason(authStore.getPolicy());if(finalReason){await lock(finalReason);return;}ready=true;appRoot.inert=false;appRoot.hidden=false;authScreen.hidden=true;authScreen.style.display='none';$('authPassword').value='';client.auth.startAutoRefresh?.();activityWriteAt=Date.now();syncStatus.textContent=readPending(user.id)?'未同期（復元済み）':'同期済み';
   if(readPending(user.id))void sync();
@@ -79,11 +83,11 @@ if(!config.supabaseUrl||!config.supabasePublishableKey||config.supabaseUrl.inclu
   $('authBackupPending').onclick=()=>{if(authorized())download(pending.payload,'climblog-unsynced-backup.json');};$('authBackupRemote').onclick=()=>{if(authorized())download(remote.payload||{},'climblog-cloud-backup.json');};
  }
  async function start(session){
-  const epoch=++loadingEpoch;ready=false;user=session.user;hidePrivateUI();say('ログイン状態と記録を確認しています…');$('authSubmit').disabled=true;
+  const epoch=++loadingEpoch;ready=false;user=session.user;hidePrivateUI();say('本人確認と記録の読み込みを行っています…');$('authSubmit').disabled=true;
   try{
    const reason=policyReason(authStore.getPolicy());if(reason){await lock(reason);return;}
-   const {data:verified,error:verifyError}=await client.auth.getUser();if(verifyError||verified?.user?.id!==user.id)throw new Error('ログインを確認できません。');
-   if(epoch!==loadingEpoch)return;const {data,error}=await bounded(client.from('user_app_state').select('payload,updated_at').eq('user_id',user.id).maybeSingle());if(error)throw error;
+   preloadAppModules(document);
+   const expectedUserId=user.id;const data=await readVerifiedAccount(expectedUserId,{verifyUser:()=>client.auth.getUser(),readRemote:()=>bounded(client.from('user_app_state').select('payload,updated_at').eq('user_id',expectedUserId).maybeSingle())});
    if(epoch!==loadingEpoch)return;remoteVersion=data?.updated_at||null;window.climbLogAccountId=user.id;origSet.call(localStorage,ownerKey,user.id);
    const remote=data?.payload?{...data.payload,records:migrateLegacyRecords(data.payload.records||[])}:null,pending=readPending(user.id);
    if(pending&&!sameRemoteVersion(pending.baseUpdatedAt,remoteVersion)){say('未同期の記録を確認してください。');showPendingChoice(data||{},pending,epoch);return;}
@@ -121,11 +125,15 @@ if(!config.supabaseUrl||!config.supabasePublishableKey||config.supabaseUrl.inclu
    const response=signup?await client.auth.signUp({email,password,options:{emailRedirectTo:location.origin+location.pathname}}):await client.auth.signInWithPassword({email,password});
    if(response.error)throw response.error;
    if(!response.data.session){say('確認メールを送信しました。メール内のリンクを開いてからログインしてください。');return;}
-   authStore.activate(response.data.session.user.id,remember,tokenKey);origSet.call(localStorage,ownerKey,response.data.session.user.id);$('authPassword').value='';location.reload();
+   authStore.activate(response.data.session.user.id,remember,tokenKey);origSet.call(localStorage,ownerKey,response.data.session.user.id);$('authPassword').value='';
+   // Existing UI modules retain account-specific state. Reauthentication still rebuilds them safely.
+   if(appImportStarted){location.reload();return;}
+   await start(response.data.session);
   }catch(error){say(error.message||'ログインできませんでした。');}finally{submitting=false;$('authSubmit').disabled=false;}
  });
  $('authToggle').addEventListener('click',()=>{signup=!signup;$('authTitle').textContent=signup?'アカウント作成':'ログイン';$('authSubmit').textContent=signup?'登録する':'ログイン';$('authToggle').textContent=signup?'ログインに戻る':'初めての方：アカウント作成';$('authPassword').autocomplete=signup?'new-password':'current-password';say('');});
  const existingPolicy=authStore.getPolicy();$('authRemember').checked=Boolean(existingPolicy?.remember);
  const reason=policyReason(existingPolicy);if(reason){say(existingPolicy?(reasons[reason]||reasons.locked):'メールアドレスとパスワードでログインしてください。');authStore.markLocked();}
  else{try{const {data:{session},error}=await client.auth.getSession();if(error)throw error;if(session&&session.user.id===existingPolicy.userId)await start(session);else await lock('signedOut',{revoke:false});}catch{say('接続を確認して再ログインしてください。');}}
+ if(!locking)$('authSubmit').disabled=false;
 }
