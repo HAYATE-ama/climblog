@@ -1,3 +1,4 @@
+import {knownCoachError,classifyCoachError} from '../../../assets/js/coach-errors.mjs';
 import {coachUsage} from '../../../assets/js/coach-usage.mjs';
 import {normalizeAiSettings,coachDay,buildAiInput,inputHash,publicProposal,validateDailyDraft,restRequired,restMessage,aiRegistryVersion,dailyDraftToPlan,consentForMode} from '../../../assets/js/ai-coach-contract.mjs';
 import {normalizeWorkoutPlan,workoutPlanSignature} from '../../../assets/js/workout-model.mjs';
@@ -20,7 +21,8 @@ export function createCoachHandler({db,provider,allowedUsers=[],configured=false
    const usageNow=async()=>{const rows=await db.requests(user,day),global=await db.globalUsage(day);return coachUsage({rows,globalCount:global.count,latestAt:global.latestAt,limits,day,now:now()});};
    if(body.action==='status'){
     const rows=await db.requests(user,day),today=rows.filter(r=>r.plan_date===day),ready=today.find(r=>r.state==='ready'&&r.settings_snapshot?.consentVersion===consentForMode(mode));
-    return reply({configured,mode,settings,day,proposal:restRequired(settings)?null:publicProposal(ready),restAdvice:restRequired(settings)?restMessage(settings):null,attempted:today.length>0,pending:today.some(r=>r.state==='processing'),usage:await usageNow()});
+    const latest=today[0];const lastError=latest?.state==='failed'?knownCoachError(latest.error_code):null;
+    return reply({configured,mode,settings,day,lastError,proposal:restRequired(settings)?null:publicProposal(ready),restAdvice:restRequired(settings)?restMessage(settings):null,attempted:today.length>0,pending:today.some(r=>r.state==='processing'),usage:await usageNow()});
    }
    if(body.action==='saveSettings'){const clean=normalizeAiSettings(body.settings,mode);if(clean.enabled&&!configured)return reply({code:'SETUP_REQUIRED'},409);await db.saveSettings(user,clean);return reply({settings:clean,configured,mode});}
    if(body.action==='adopt'){
@@ -38,14 +40,14 @@ export function createCoachHandler({db,provider,allowedUsers=[],configured=false
    const input=buildAiInput(needsPersonal?await db.state(user,token):{},settings,day,mode);if(!input.candidates.length||JSON.stringify(input).length>30000)return reply({code:'INPUT_LIMIT'},400);
    const claim=await db.claim({p_user_id:user,p_request_id:body.requestId,p_day:day,p_force:body.force===true,p_hash:await inputHash(input),p_settings:settings,p_registry:aiRegistryVersion,p_daily:limits.daily,p_monthly:limits.monthly,p_global:limits.global,p_interval_minutes:limits.intervalMinutes});
    if(claim.action!=='created'){const row=claim.request;if(row?.state==='ready'&&row.settings_snapshot?.consentVersion===consentForMode(mode))return reply({proposal:publicProposal(row),cached:true,usage:await usageNow()});return reply({code:claim.code|| (row?.state==='processing'?'PENDING':claim.action==='disabled'?'DISABLED':'PREVIOUS_FAILED'),usage:await usageNow()},claim.action==='limited'?429:409);}
-   let result;
+   let result,stage='provider';
    try{
     if(JSON.stringify(normalizeAiSettings(await db.settings(user),mode))!==JSON.stringify(settings))throw new Error('CONSENT_CHANGED');
-    result=await provider(input);const draft=validateDailyDraft(result.draft,settings);
+    result=await provider(input);stage='validation';const draft=validateDailyDraft(result.draft,settings);stage='save';
     const row=await db.finish({p_user_id:user,p_request_id:body.requestId,p_state:'ready',p_draft:draft,p_model:result.model,p_input:result.inputTokens,p_output:result.outputTokens,p_error:null});
     if(row.state!=='ready')return reply({code:'CONSENT_CHANGED'},409);return reply({proposal:publicProposal(row),usage:await usageNow()});
    }catch(error){
-    const code=['PROVIDER_LIMIT','REFUSAL','INCOMPLETE','CONSENT_CHANGED','PROVIDER_AUTH','MODEL_NOT_ALLOWED'].includes(error.message)?error.message:'GENERATION_FAILED';
+    const code=classifyCoachError(error,stage);
     await db.finish({p_user_id:user,p_request_id:body.requestId,p_state:'failed',p_draft:null,p_model:result?.model||null,p_input:result?.inputTokens??null,p_output:result?.outputTokens??null,p_error:code});return reply({code,usage:await usageNow()},502);
    }
   }catch{return reply({code:'SETUP_REQUIRED'},503);}
