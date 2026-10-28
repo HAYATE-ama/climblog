@@ -1,6 +1,6 @@
-import {freeModels} from './provider.mjs';
+import {freeModels,defaultGeminiModel} from './provider.mjs';
 export function coachServerPolicy(env){
- const mode=env('AI_USAGE_MODE')||'free',model=env('GEMINI_MODEL')||'gemini-2.5-flash-lite';
+ const mode=env('AI_USAGE_MODE')||'free',model=env('GEMINI_MODEL')||defaultGeminiModel;
  const confirmed=mode==='free'?env('AI_FREE_TIER_CONFIRMED')==='true':mode==='paid'&&env('AI_PAID_DATA_CONFIRMED')==='true';
  const cap=(name,fallback,max)=>{const n=Number(env(name)||fallback);return Number.isInteger(n)&&n>=1&&n<=max?n:fallback;};
  const allowedUsers=(env('AI_ALLOWED_USER_IDS')||'').split(',').map(s=>s.trim()).filter(Boolean);
