@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {normalizeAiSettings,aiConsentVersion,dailyCandidates,validateDailyDraft,dailyDraftToPlan,buildAiInput,coachDay} from '../assets/js/ai-coach-contract.mjs';
 import {createCoachHandler} from '../supabase/functions/ai-coach/handler.mjs';
-import {createProvider} from '../supabase/functions/ai-coach/provider.mjs';
+import {createProvider} from '../supabase/functions/ai-coach/openai-provider.mjs';
 import {normalizeWorkoutPlan,workoutPlanSignature,createWorkout,finishWorkoutPhase,stopWorkout,prepareWorkoutSave} from '../assets/js/workout-model.mjs';
 const user='00000000-0000-4000-8000-000000000001',date='2026-10-28';
 const settings=()=>normalizeAiSettings({enabled:true,consentVersion:aiConsentVersion,pain:'none',fatigue:'normal'});
