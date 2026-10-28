@@ -22,9 +22,13 @@ export function createCoachHandler({db,provider,allowedUsers=[],configured=false
    if(body.action==='status'){
     const rows=await db.requests(user,day),today=rows.filter(r=>r.plan_date===day),ready=today.find(r=>r.state==='ready'&&r.settings_snapshot?.consentVersion===consentForMode(mode));
     const latest=today[0];const lastError=latest?.state==='failed'?knownCoachError(latest.error_code):null;
-    return reply({configured,mode,settings,day,lastError,proposal:restRequired(settings)?null:publicProposal(ready),restAdvice:restRequired(settings)?restMessage(settings):null,attempted:today.length>0,pending:today.some(r=>r.state==='processing'),usage:await usageNow()});
+    return reply({configured,capabilities:{consent:true,dayPlan:true,note:true},mode,settings,day,lastError,proposal:restRequired(settings)?null:publicProposal(ready),restAdvice:restRequired(settings)?restMessage(settings):null,attempted:today.length>0,pending:today.some(r=>r.state==='processing'),usage:await usageNow()});
    }
-   if(body.action==='saveSettings'){const clean=normalizeAiSettings(body.settings,mode);if(clean.enabled&&!configured)return reply({code:'SETUP_REQUIRED'},409);await db.saveSettings(user,clean);return reply({settings:clean,configured,mode});}
+   if(body.action==='consent'){
+    if(!['accepted','declined'].includes(body.decision))return reply({code:'INVALID'},400);
+    const clean=normalizeAiSettings({...settings,enabled:body.decision==='accepted',consentVersion:consentForMode(mode),decisionVersion:consentForMode(mode),consentDecision:body.decision},mode);await db.saveSettings(user,clean);return reply({settings:clean,configured,mode});
+   }
+   if(body.action==='saveSettings'){const clean=normalizeAiSettings({...body.settings,enabled:settings.enabled,consentVersion:settings.consentVersion,decisionVersion:settings.decisionVersion,consentDecision:settings.consentDecision},mode);await db.saveSettings(user,clean);return reply({settings:clean,configured,mode});}
    if(body.action==='adopt'){
     if(!uuid(body.id)||!uuid(body.proposalId))return reply({code:'INVALID'},400);
     const row=await db.proposal(user,body.proposalId);if(row?.state!=='ready')return reply({code:'NOT_FOUND'},404);

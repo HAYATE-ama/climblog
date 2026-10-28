@@ -1,3 +1,4 @@
+import {installAuthLoading} from './auth-loading.mjs';
 import {readVerifiedAccount,preloadAppModules} from './auth-startup.mjs';
 import {accountKeys,loadAccountPayload} from './account-storage.mjs';
 import {createClient} from 'https://esm.sh/@supabase/supabase-js@2';
@@ -5,6 +6,7 @@ import {buildCloudPayload,migrateLegacyRecords} from './features.mjs';
 import {createAuthStorage,policyReason,sameRemoteVersion} from './auth-policy.mjs';
 
 const config=window.CLIMBLOG_CONFIG||{},$=id=>document.getElementById(id),authScreen=$('authScreen'),authForm=$('authForm'),appRoot=$('appRoot'),syncStatus=$('syncState');
+const authLoading=installAuthLoading(document);
 const say=text=>$('authMessage').textContent=text;
 // Download public module code without executing it or reading account state.
 authForm.addEventListener('focusin',()=>preloadAppModules(document),{once:true});
@@ -20,7 +22,7 @@ if(!config.supabaseUrl||!config.supabasePublishableKey||config.supabaseUrl.inclu
  const parse=(key,fallback=null)=>{try{return JSON.parse(localStorage.getItem(key)||'null')??fallback;}catch{return fallback;}};
  const writeRaw=(key,value)=>origSet.call(localStorage,key,JSON.stringify(value));
  const readPending=id=>{const value=parse(pendingKey(id));return value?.userId===id&&value.payload&&Array.isArray(value.payload.records)&&typeof value.revision==='string'?value:null;};
- function hidePrivateUI(){
+ function hidePrivateUI(){window.climbLogAuthReady=false;
   window.dispatchEvent(new Event('climblog:authLock'));
   for(const dialog of document.querySelectorAll('dialog[open]'))dialog.close();
   $('modal')?.classList.remove('open');$('authPending').hidden=true;appRoot.hidden=true;appRoot.inert=true;authScreen.hidden=false;authScreen.style.display='grid';$('authPassword').value='';window.scrollTo({top:0,left:0,behavior:'instant'});
@@ -30,7 +32,7 @@ if(!config.supabaseUrl||!config.supabasePublishableKey||config.supabaseUrl.inclu
  function clearCache(){for(const key of Object.values(accountKeys))origRemove.call(localStorage,key);origRemove.call(localStorage,'climbLogProjects');}
  const reasons={idle:'30分間操作がなかったため、再ログインしてください。下書き・途中記録は保持しています。',absolute:'前回のログインから7日経過しました。再ログインしてください。',signedOut:'ログインが解除されました。再ログインしてください。',accountChanged:'別の画面でアカウントが変更されました。再ログインしてください。',missing:'ログイン方式を更新しました。パスワードでログインしてください。',locked:'再度パスワードを入力してログインしてください。',manual:'ログアウトしました。',authError:'認証を確認できません。接続を確認して再ログインしてください。'};
  async function lock(reason,{revoke=true,notify=true}={}){
-  if(locking)return;locking=true;ready=false;initializing=false;loadingEpoch++;clearTimeout(syncTimer);hidePrivateUI();client?.auth.stopAutoRefresh?.();
+  if(locking)return;authLoading.set(false);locking=true;ready=false;initializing=false;loadingEpoch++;clearTimeout(syncTimer);hidePrivateUI();client?.auth.stopAutoRefresh?.();
   const policy=authStore.getPolicy(),owner=localStorage.getItem(ownerKey),canRevoke=revoke&&policy?.userId===user?.id&&(!owner||owner===user?.id);
   try{if(!user||policy?.userId===user.id)authStore.markLocked();}catch{}
   if(notify)broadcast('lock');
@@ -79,30 +81,30 @@ if(!config.supabaseUrl||!config.supabasePublishableKey||config.supabaseUrl.inclu
   const reason=policyReason(authStore.getPolicy());if(reason){await lock(reason);return;}
   loadAccountPayload(localStorage,payload,origSet,origRemove);localPayload=buildCloudPayload(localStorage);initializing=true;
   appImportStarted=true;
-  try{await import('./app.js');await import('./enhancements.js');}finally{initializing=false;}
+  try{await bounded(import('./app.js'));await bounded(import('./enhancements.js'));}finally{initializing=false;}
   if(epoch!==loadingEpoch||locking)return;const finalReason=policyReason(authStore.getPolicy());if(finalReason){await lock(finalReason);return;}ready=true;appRoot.inert=false;appRoot.hidden=false;authScreen.hidden=true;authScreen.style.display='none';$('authPassword').value='';client.auth.startAutoRefresh?.();activityWriteAt=Date.now();syncStatus.textContent=readPending(user.id)?'未同期（復元済み）':'同期済み';
-  if(readPending(user.id))void sync();
+  window.climbLogAuthReady=true;window.dispatchEvent(new Event('climblog:authenticated'));if(readPending(user.id))void sync();
  }
  function showPendingChoice(remote,pending,epoch){
   const authorized=()=>{const p=authStore.getPolicy();if(p?.userId!==user?.id||localStorage.getItem(ownerKey)!==user?.id){void lock('accountChanged',{revoke:false,notify:false});return false;}const reason=policyReason(p);if(reason){void lock(reason);return false;}return true;};
-  const resume=async payload=>{try{await initializeApp(payload,epoch);}catch(error){hidePrivateUI();say(error.message||'画面を読み込めませんでした。再ログインしてください。');}};
+  const resume=async payload=>{try{authLoading.set(true,'記録を読み込んでいます…');await initializeApp(payload,epoch);authLoading.set(false);}catch(error){hidePrivateUI();say(error.message||'画面を読み込めませんでした。再ログインしてください。');}finally{authLoading.set(false);}};
   const box=$('authPending');box.hidden=false;$('authPendingMessage').textContent='この端末に未同期の変更があり、クラウド側も更新されています。両方を自動では上書きしません。';
   $('authRestorePending').onclick=async()=>{if(!authorized())return;if(!confirm('端末の未同期内容でクラウドを置き換えますか？クラウド内容を先にバックアップできます。'))return;box.hidden=true;await resume(pending.payload);};
   $('authKeepRemote').onclick=async()=>{if(!authorized())return;if(!confirm('端末の未同期データを破棄してクラウドを使いますか？必要なら先にバックアップしてください。'))return;origRemove.call(localStorage,pendingKey(user.id));box.hidden=true;await resume(remote.payload||null);};
   $('authBackupPending').onclick=()=>{if(authorized())download(pending.payload,'climblog-unsynced-backup.json');};$('authBackupRemote').onclick=()=>{if(authorized())download(remote.payload||{},'climblog-cloud-backup.json');};
  }
  async function start(session){
-  const epoch=++loadingEpoch;ready=false;user=session.user;hidePrivateUI();say('本人確認と記録の読み込みを行っています…');$('authSubmit').disabled=true;
+  authLoading.set(true,'本人確認と記録の読み込み中…');const epoch=++loadingEpoch;ready=false;user=session.user;hidePrivateUI();say('本人確認と記録の読み込みを行っています…');$('authSubmit').disabled=true;
   try{
    const reason=policyReason(authStore.getPolicy());if(reason){await lock(reason);return;}
    preloadAppModules(document);
-   const expectedUserId=user.id;const data=await readVerifiedAccount(expectedUserId,{verifyUser:()=>client.auth.getUser(),readRemote:()=>bounded(client.from('user_app_state').select('payload,updated_at').eq('user_id',expectedUserId).maybeSingle())});
+   const expectedUserId=user.id;const data=await readVerifiedAccount(expectedUserId,{verifyUser:()=>bounded(client.auth.getUser()),readRemote:()=>bounded(client.from('user_app_state').select('payload,updated_at').eq('user_id',expectedUserId).maybeSingle())});
    if(epoch!==loadingEpoch)return;remoteVersion=data?.updated_at||null;window.climbLogAccountId=user.id;origSet.call(localStorage,ownerKey,user.id);
    const remote=data?.payload?{...data.payload,records:migrateLegacyRecords(data.payload.records||[])}:null,pending=readPending(user.id);
    if(pending&&!sameRemoteVersion(pending.baseUpdatedAt,remoteVersion)){say('未同期の記録を確認してください。');showPendingChoice(data||{},pending,epoch);return;}
    await initializeApp(pending?.payload||remote,epoch);
   }catch(error){if(epoch===loadingEpoch){hidePrivateUI();say(error.message||'接続を確認して再ログインしてください。');}}
-  finally{if(!locking)$('authSubmit').disabled=false;}
+  finally{authLoading.set(false);if(!locking)$('authSubmit').disabled=false;}
  }
  // Never perform awaited Supabase calls inside the auth notification callback.
  client.auth.onAuthStateChange((event,session)=>{
@@ -127,22 +129,22 @@ if(!config.supabaseUrl||!config.supabasePublishableKey||config.supabaseUrl.inclu
   if(submitting||locking)return;hidePrivateUI();say('未同期の変更を確認してログアウトしています…');$('authSubmit').disabled=true;try{await sync();}finally{await lock('manual');if(localStorage.getItem(ownerKey)===user?.id)clearCache();}
  });
  authForm.addEventListener('submit',async event=>{
-  event.preventDefault();if(submitting||locking)return;submitting=true;$('authSubmit').disabled=true;say('処理中です…');$('authPending').hidden=true;
+  event.preventDefault();if(submitting||locking)return;submitting=true;authLoading.set(true);$('authSubmit').disabled=true;say('処理中です…');$('authPending').hidden=true;
   const remember=$('authRemember').checked;authStore.setMode(remember);
   try{
    const email=$('authEmail').value.trim(),password=$('authPassword').value;
-   const response=signup?await client.auth.signUp({email,password,options:{emailRedirectTo:location.origin+location.pathname}}):await client.auth.signInWithPassword({email,password});
+   const response=signup?await bounded(client.auth.signUp({email,password,options:{emailRedirectTo:location.origin+location.pathname}})):await bounded(client.auth.signInWithPassword({email,password}));
    if(response.error)throw response.error;
    if(!response.data.session){say('確認メールを送信しました。メール内のリンクを開いてからログインしてください。');return;}
    authStore.activate(response.data.session.user.id,remember,tokenKey);origSet.call(localStorage,ownerKey,response.data.session.user.id);$('authPassword').value='';
    // Existing UI modules retain account-specific state. Reauthentication still rebuilds them safely.
    if(appImportStarted){location.reload();return;}
    await start(response.data.session);
-  }catch(error){say(error.message||'ログインできませんでした。');}finally{submitting=false;$('authSubmit').disabled=false;}
+  }catch(error){say(error.message||'ログインできませんでした。');}finally{authLoading.set(false);submitting=false;$('authSubmit').disabled=false;}
  });
  $('authToggle').addEventListener('click',()=>{signup=!signup;$('authTitle').textContent=signup?'アカウント作成':'ログイン';$('authSubmit').textContent=signup?'登録する':'ログイン';$('authToggle').textContent=signup?'ログインに戻る':'初めての方：アカウント作成';$('authPassword').autocomplete=signup?'new-password':'current-password';say('');});
  const existingPolicy=authStore.getPolicy();$('authRemember').checked=Boolean(existingPolicy?.remember);
  const reason=policyReason(existingPolicy);if(reason){say(existingPolicy?(reasons[reason]||reasons.locked):'メールアドレスとパスワードでログインしてください。');authStore.markLocked();}
- else{try{const {data:{session},error}=await client.auth.getSession();if(error)throw error;if(session&&session.user.id===existingPolicy.userId)await start(session);else await lock('signedOut',{revoke:false});}catch{say('接続を確認して再ログインしてください。');}}
- if(!locking)$('authSubmit').disabled=false;
+ else{authLoading.set(true,'ログイン状態を確認しています…');try{const {data:{session},error}=await bounded(client.auth.getSession());if(error)throw error;if(session&&session.user.id===existingPolicy.userId)await start(session);else await lock('signedOut',{revoke:false});}catch{say('接続を確認して再ログインしてください。');}}
+ authLoading.set(false);if(!locking)$('authSubmit').disabled=false;
 }

@@ -19,7 +19,7 @@ export const coachErrors={
 };
 const known=new Set([...Object.keys(coachErrors),'PROVIDER_LIMIT','REFUSAL','INCOMPLETE','CONSENT_CHANGED','PROVIDER_AUTH','MODEL_NOT_ALLOWED']);
 const draftErrors=new Map([
- ['提案の形式を確認できません。','DRAFT_FORMAT'],['提案の種目・順序・セットを確認できません。','DRAFT_EXERCISE'],['左右の指定が不正です。','DRAFT_SIDE'],['提案の運動量・重量・休憩が不正です。','DRAFT_LOAD'],['運動の予定時間が短すぎます。','DRAFT_TIME'],['利用時間または準備条件を満たしていません。','DRAFT_BUDGET']
+ ['提案の形式を確認できません。','DRAFT_FORMAT'],['提案の種目・順序・セットを確認できません。','DRAFT_EXERCISE'],['左右の指定が不正です。','DRAFT_SIDE'],['提案の運動量・重量・休憩が不正です。','DRAFT_LOAD'],['運動の予定時間が短すぎます。','DRAFT_TIME'],['利用時間または準備条件を満たしていません。','DRAFT_BUDGET'],['1日の計画に必要な準備・メイン・整理運動を確認できません。','DRAFT_BUDGET']
 ]);
 export function knownCoachError(code){return known.has(code)?code:'GENERATION_FAILED';}
 export function classifyCoachError(error,stage){if(known.has(error?.message))return error.message;if(stage==='validation')return draftErrors.get(error?.message)||'INVALID_DRAFT';return stage==='save'?'RESULT_SAVE_FAILED':'GENERATION_FAILED';}
