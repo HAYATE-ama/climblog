@@ -1,13 +1,17 @@
 // Gemini free-trial adapter. No browser imports, SDK, tools or fallback provider.
 import {proposalSchema,coachInstructions} from './proposal-schema.mjs';
-export const freeModels=Object.freeze(['gemini-2.5-flash-lite','gemini-2.5-flash']);
-export function createProvider({key,model='gemini-2.5-flash-lite',fetchImpl=fetch}){
+export const defaultGeminiModel='gemini-3.5-flash-lite';
+// Legacy IDs remain explicit options for projects that already have access. No fallback.
+export const freeModels=Object.freeze([defaultGeminiModel,'gemini-2.5-flash-lite','gemini-2.5-flash']);
+export function createProvider({key,model=defaultGeminiModel,fetchImpl=fetch}){
  return async input=>{
   if(!key)throw new Error('SETUP_REQUIRED');
   if(!freeModels.includes(model))throw new Error('MODEL_NOT_ALLOWED');
+  const thinkingConfig=model===defaultGeminiModel?{thinkingLevel:'MINIMAL'}:{thinkingBudget:0};
+  const generationConfig={maxOutputTokens:4000,thinkingConfig,responseMimeType:'application/json',responseJsonSchema:proposalSchema,...(model===defaultGeminiModel?{}:{candidateCount:1,temperature:0.3})};
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),45000);
   try{
-   const response=await fetchImpl('https://generativelanguage.googleapis.com/v1beta/models/'+model+':generateContent',{method:'POST',signal:controller.signal,headers:{'x-goog-api-key':key,'Content-Type':'application/json'},body:JSON.stringify({systemInstruction:{parts:[{text:coachInstructions}]},contents:[{role:'user',parts:[{text:JSON.stringify(input)}]}],generationConfig:{candidateCount:1,maxOutputTokens:4000,temperature:0.3,thinkingConfig:{thinkingBudget:0},responseMimeType:'application/json',responseJsonSchema:proposalSchema}})});
+   const response=await fetchImpl('https://generativelanguage.googleapis.com/v1beta/models/'+model+':generateContent',{method:'POST',signal:controller.signal,headers:{'x-goog-api-key':key,'Content-Type':'application/json'},body:JSON.stringify({systemInstruction:{parts:[{text:coachInstructions}]},contents:[{role:'user',parts:[{text:JSON.stringify(input)}]}],generationConfig})});
    if(!response.ok)throw new Error(response.status===429?'PROVIDER_LIMIT':response.status===401||response.status===403?'PROVIDER_AUTH':response.status===400?'PROVIDER_BAD_REQUEST':response.status===404?'PROVIDER_NOT_FOUND':response.status>=500?'PROVIDER_UNAVAILABLE':'PROVIDER_ERROR');
    let data;try{data=await response.json();}catch{throw new Error('INVALID_JSON');}if(data.promptFeedback?.blockReason)throw new Error('REFUSAL');
    const candidate=data.candidates?.[0];if(!candidate||candidate.finishReason!=='STOP')throw new Error(candidate?.finishReason==='MAX_TOKENS'?'INCOMPLETE':'REFUSAL');

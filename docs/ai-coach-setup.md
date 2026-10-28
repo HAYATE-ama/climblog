@@ -4,7 +4,9 @@
 
 ## 調査結果と採用モデル
 
-標準モデルは安定版 `gemini-2.5-flash-lite`。公式料金表でStandardのテキスト入出力が無料枠の対象であり、モデル資料で構造化出力への対応を確認しました。サーバーの `GEMINI_MODEL` で、同じく対象を確認した `gemini-2.5-flash` へ明示的に変更できます。この2モデル以外は拒否します。画像、音声、検索、Grounding、Batch、キャッシュ保存、モデルの自動切替は使用しません。将来の無料対象変更・提供終了時は公式情報を再確認して停止または設定変更してください。
+標準モデルは安定版 `gemini-3.5-flash-lite`。2026-10-28にGoogleの料金表でStandardのテキスト入出力が無料枠対象であることと、モデル資料で構造化出力への対応を確認しました。新規プロジェクトではこのモデルを使用してください。
+
+以前案内した2.5系は、現在Google側で過去に利用実績があるユーザー向けに制限されています。料金表に無料枠があっても、新規キーで利用できるとは限りません。旧 `gemini-2.5-flash-lite` / `gemini-2.5-flash` は、すでに利用権限のあるプロジェクトの明示的な設定としてのみ残します。モデルを自動で切り替える処理はありません。3.5系はthinkingLevel=MINIMALを使い、2.5系のthinkingBudget・temperature・candidateCountを送りません。無料から有料への切り替え、検索・Grounding・ファイル・ツールの追加はしません。
 
 GoogleのRPM・TPM・RPDはプロジェクト単位で、実際の制限はAI Studioで確認する仕様です。一般値を固定して保証しません。GoogleのRPDは米国太平洋時間の午前0時にリセットされます。アプリの同日再利用・日次上限は日本時間であり別の仕組みです。同じGoogleプロジェクトを他アプリでも使う場合、その消費も合算されます。
 
@@ -58,7 +60,7 @@ Authentication → Usersで自分のUID（メールではなくUUID）を確認�
 | GEMINI_API_KEY | AI Studioで作成した無料プロジェクトのキー |
 | AI_ALLOWED_USER_IDS | 自分のユーザーUID。複数ならカンマ区切り |
 | AI_FREE_TIER_CONFIRMED | Free Tierと無料対象モデルを本人が確認したら `true`。未確認なら未設定 |
-| GEMINI_MODEL | 任意。省略時 `gemini-2.5-flash-lite`。許可値は上記2モデルのみ |
+| GEMINI_MODEL | 新規は `gemini-3.5-flash-lite`。既定も同じ。旧2.5系の設定は自動置換されないので変更が必要 |
 | AI_DAILY_LIMIT | 任意。1ユーザー1日1〜2回。既定2回 |
 | AI_MONTHLY_LIMIT | 任意。1ユーザー月1〜30回。既定30回 |
 | AI_GLOBAL_MONTHLY_LIMIT | 任意。サーバー全体月1〜30回。既定30回 |
@@ -98,7 +100,9 @@ AIコーチ → 状態を確認 → 今日の条件・AI設定を開き、時間
 ## 公式資料（2026-10-28確認）
 
 - [料金・無料枠](https://ai.google.dev/gemini-api/docs/pricing)
-- [2.5 Flash-Liteの機能](https://ai.google.dev/gemini-api/docs/models/gemini-2.5-flash-lite)
+- [3.5 Flash-Liteの機能](https://ai.google.dev/gemini-api/docs/models/gemini-3.5-flash-lite)
+- [旧モデルの利用制限](https://ai.google.dev/gemini-api/docs/deprecations)
+- [3.5系への移行と送信設定](https://ai.google.dev/gemini-api/docs/whats-new-gemini-3.6)
 - [レート制限とAI Studioでの確認](https://ai.google.dev/gemini-api/docs/rate-limits)
 - [課金・Tier](https://ai.google.dev/gemini-api/docs/billing)
 - [無料サービスのデータ利用・年齢条件](https://ai.google.dev/gemini-api/terms)
@@ -109,3 +113,5 @@ AIコーチ → 状態を確認 → 今日の条件・AI設定を開き、時間
 ## 生成失敗の診断
 
 状態を確認しても直前の失敗理由を表示します。旧 `GENERATION_FAILED` は原因を後から復元できません。新しい関数では送信形式（PROVIDER_BAD_REQUEST）、モデル不在（PROVIDER_NOT_FOUND）、通信・時間切れ、回答JSON、種目・左右・運動量・予定時間・利用時間の検証、結果保存を区別します。キー・入力・Googleのエラー本文・回答本文は診断表示やログへ出しません。分類の追加でGoogleへの自動再試行や上限解除は行いません。コード更新後はgit pullとai-coachの再配置が必要です。SQL・Secretsの再入力は不要です。
+
+`PROVIDER_NOT_FOUND` が2.5系で発生する場合は、上の利用制限が原因候補です。Supabase SecretsのGEMINI_MODELをgemini-3.5-flash-liteに変更し、最新版を取得して関数を再配置します。SQL・キーの再発行は不要です。過去の失敗は回数に残し、上限到達後は日本時間の翌日まで待ちます。旧エラー表示は次回の成功まで残ることがあります。実キーでの利用可否・実応答は本人のプロジェクトで確認してください。
