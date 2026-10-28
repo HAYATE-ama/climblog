@@ -3,3 +3,8 @@
 #coachView .coachGrid{grid-template-columns:minmax(0,1fr);max-width:760px;margin-inline:auto}
 
 .coachEquipmentOptions{margin:18px 0;border:1px solid var(--line);border-radius:10px;padding:12px}.coachEquipmentOptions>summary{cursor:pointer;min-height:24px;color:var(--text)}.coachEquipmentOptions[open]>summary{margin-bottom:12px}
+
+/* Daily coach: one result, optional settings below. */
+.coachToday,.coachPreferences{margin-top:16px}.coachExerciseList{padding-left:24px;display:grid;gap:16px}.coachExerciseList li>span,.coachExerciseList li>small{display:block;margin-top:5px}.coachExerciseList small{color:var(--muted)}.coachActions{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}.coachPreferences summary{cursor:pointer;font-weight:700}.coachPreferences form{display:grid;gap:16px;margin-top:20px}.coachPreferences label:not(.coachCheck){display:grid;gap:8px;min-width:0}.coachPreferences select,.coachPreferences input[type=number]{width:100%;box-sizing:border-box;min-width:0}.coachCheck{display:flex;align-items:flex-start;gap:10px;margin:12px 0}.coachCheck input{width:20px;height:20px;flex:0 0 auto}.coachPreferences fieldset{border:1px solid var(--line);border-radius:12px;padding:12px;min-width:0}.coachFields>*{min-width:0}@media(max-width:600px){.coachPreferences .coachFields{display:grid;grid-template-columns:1fr}.coachActions button{width:100%}.coachToday{padding:18px}}
+
+.coachPreferences select,.coachPreferences input[type=number]{padding:13px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel2);color:var(--text);font:inherit;min-height:46px;font-size:16px}.coachPreferences .coachEquipment label{display:flex}.coachToday button:disabled{opacity:.55;cursor:not-allowed}
