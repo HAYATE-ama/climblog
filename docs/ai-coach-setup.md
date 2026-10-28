@@ -105,3 +105,7 @@ AIコーチ → 状態を確認 → 今日の条件・AI設定を開き、時間
 - [キーの作成・保護](https://ai.google.dev/gemini-api/docs/api-key)
 - [generateContent・構造化出力のREST仕様](https://ai.google.dev/api/generate-content)
 - [Supabase関数配置](https://supabase.com/docs/guides/functions/deploy)
+
+## 生成失敗の診断
+
+状態を確認しても直前の失敗理由を表示します。旧 `GENERATION_FAILED` は原因を後から復元できません。新しい関数では送信形式（PROVIDER_BAD_REQUEST）、モデル不在（PROVIDER_NOT_FOUND）、通信・時間切れ、回答JSON、種目・左右・運動量・予定時間・利用時間の検証、結果保存を区別します。キー・入力・Googleのエラー本文・回答本文は診断表示やログへ出しません。分類の追加でGoogleへの自動再試行や上限解除は行いません。コード更新後はgit pullとai-coachの再配置が必要です。SQL・Secretsの再入力は不要です。

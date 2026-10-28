@@ -18,3 +18,6 @@
 *.log
 node_modules/
 /dist/
+
+# Supabase CLI generated local metadata (not deployable source)
+/supabase/.temp/
