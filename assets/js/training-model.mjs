@@ -11,7 +11,7 @@ export function trainingVolume(record){
 }
 export function applySetDetails(record,rows){
   const setDetails=normalizeSetDetails(rows),volume=trainingVolume({setDetails,loadMethod:record.loadMethod}),weights=setDetails.filter(row=>isRecordedLoad(row,record.loadMethod)).map(row=>row.loadKg),reps=setDetails.map(row=>row.reps),lo=weights.length?Math.min(...weights):0,hi=weights.length?Math.max(...weights):0;
-  return {...withExerciseIdentity(record),setDetails,sets:volume.sets,reps:reps.every(value=>value===reps[0])?reps[0]:0,loadKg:hi,summary:[`${volume.sets}セット`,`合計${volume.reps}回`,volume.holdSeconds?`保持合計${volume.holdSeconds}秒`:null,weights.length?`${lo===hi?hi:lo+'〜'+hi}kg${weights.length<setDetails.length?'（未記録あり）':''}`:'重量未記録',record.durationMinutes?`${record.durationMinutes}分`:null].filter(Boolean).join(' · ')};
+  return {...withExerciseIdentity(record),setDetails,sets:volume.sets,reps:reps.every(value=>value===reps[0])?reps[0]:0,loadKg:hi,summary:[`${volume.sets}セット`,`合計${volume.reps}回`,volume.holdSeconds?`保持合計${volume.holdSeconds}秒`:null,weights.length?`${lo===hi&&hi===0?'重量なし':(lo===hi?hi:lo+'〜'+hi)+'kg'}${weights.length<setDetails.length?'（未記録あり）':''}`:'重量未記録',record.durationMinutes?`${record.durationMinutes}分`:null].filter(Boolean).join(' · ')};
 }
 export function makePairedLifts(base,right,left){
   const values=[right,left];if(values.some(value=>value==null||String(value).trim()===''||!Number.isFinite(Number(value))||Number(value)<0||Number(value)>1000))throw new Error('右手・左手それぞれの重量を入力してください。');

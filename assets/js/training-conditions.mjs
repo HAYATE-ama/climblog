@@ -6,3 +6,5 @@ export function isRecordedLoad(set,loadMethod){if(typeof set?.loadRecorded==='bo
 export function firstMissingWorkoutLoad(plan){for(const e of plan.exercises){if(!['added','liftFromGround'].includes(e.loadMethod))continue;const setIndex=e.sets.findIndex(s=>!isRecordedLoad(s,e.loadMethod));if(setIndex>=0)return {exerciseId:e.id,setIndex};}return null;}
 
 export function loadRecordedMetadata(set){if(set.loadRecorded===undefined)return {};if(typeof set.loadRecorded!=='boolean')throw new Error('重量の設定状態が不正です。');return {loadRecorded:set.loadRecorded};}
+
+export function externalLoadLabel(set,loadMethod,{missing='未設定'}={}){const kg=Number(set?.loadKg);if(!isRecordedLoad(set,loadMethod)||!Number.isFinite(kg)||kg<0)return missing;return kg===0?'重量なし':kg+'kg';}
