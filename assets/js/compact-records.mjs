@@ -1,3 +1,4 @@
+import {isRecordedLoad} from './training-conditions.mjs';
 import {escapeHtml as esc} from './data-utils.mjs';
 import {trainingVolume} from './training-model.mjs';
 const kindNames={gym:'ジム',outdoor:'外岩',training:'トレーニング'};
@@ -13,7 +14,7 @@ export function recordSummary(r){
  if(r.kind==='gym')return {title:text(r.gymName)||text(r.place)||'ジム未設定',value:text(r.gradeLabelSnapshot)||text(r.grade)||'NoGrade',secondary:`${r.gymOutcome==='failed'?'敗退 · ':''}完登${n(r.sends)} · トライ${n(r.tries)}`};
  if(r.trainingMode==='maxTest'){const conditions=[({open:'オープン',halfCrimp:'ハーフクリンプ',fullCrimp:'フルクリンプ'}[r.gripType]||''),n(r.edgeDepthMm)?`${n(r.edgeDepthMm)}mm`:'',n(r.holdSeconds)?`${n(r.holdSeconds)}秒`:'',({left:'左手',right:'右手'}[r.liftHand]||'')].filter(Boolean);return {title:text(r.exerciseName)||text(r.grade)||'最大出力',value:`${r.maxType==='singleHandLift'?'挙上':'追加'} ${n(r.addedWeightKg)}kg`,secondary:conditions.join(' · ')};}
  const loads=r.setDetails?.length?r.setDetails.map(s=>n(s.loadKg)):[n(r.loadKg)],lo=Math.min(...loads),hi=Math.max(...loads);
- return {title:text(r.exerciseName)||text(r.grade)||'トレーニング',value:routineLabel(r),secondary:hi?`負荷 ${lo===hi?hi:lo+'〜'+hi}kg`:''};
+ return {title:text(r.exerciseName)||text(r.grade)||'トレーニング',value:routineLabel(r),secondary:hi?`負荷 ${lo===hi?hi:lo+'〜'+hi}kg`:loads.length&&(r.setDetails?.length?r.setDetails:[{loadKg:r.loadKg,loadRecorded:r.loadRecorded}]).every(s=>isRecordedLoad(s,r.loadMethod))?'重量なし':''};
 }
 export function recordLineMarkup(r,{secondary=true}={}){
  const s=recordSummary(r),color=r.colorSnapshot||r.swatch,swatch=r.kind==='gym'?`<i class="compactSwatch" style="background:${/^#[0-9a-f]{3,8}$/i.test(color||'')?color:'#ff6f00'}" aria-hidden="true"></i>`:'';
