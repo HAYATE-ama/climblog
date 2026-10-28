@@ -43,6 +43,6 @@ export function installSettingsDrawer(){
  $('saveGym').addEventListener('click',()=>{const snapshot=window.climbLogGymEditor.snapshot();if(localStorage.getItem('climbLogGyms')===snapshot)gymBaseline=snapshot;});
  new MutationObserver(()=>{if(drawer.open)$('settingsSyncStatus').textContent='同期状態：'+$('syncState').textContent;}).observe($('syncState'),{childList:true,characterData:true,subtree:true});
  window.addEventListener('climblog:authLock',()=>close(true));
- window.climbLogSettings={open,close,openOutdoor:()=>{if(!drawer.open)open();choose('outdoor');},openDataTools:()=>{if(!drawer.open)open();choose('dataTools');}};
+ window.climbLogSettings={open,close,openBody:()=>{if(!drawer.open)open();choose('body');},openOutdoor:()=>{if(!drawer.open)open();choose('outdoor');},openDataTools:()=>{if(!drawer.open)open();choose('dataTools');}};
  paintPanel('menu');
 }
