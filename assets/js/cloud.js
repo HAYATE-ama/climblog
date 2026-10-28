@@ -49,7 +49,7 @@ if(!config.supabaseUrl||!config.supabasePublishableKey||config.supabaseUrl.inclu
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),65000);
   try{const res=await fetch(config.supabaseUrl+'/functions/v1/ai-coach',{method:'POST',signal:controller.signal,headers:{apikey:config.supabasePublishableKey,Authorization:'Bearer '+data.session.access_token,'Content-Type':'application/json'},body:JSON.stringify(body)});
    if(!check()||epoch!==loadingEpoch||id!==user?.id)throw new Error('AUTH_REQUIRED');
-   if(res.status===404)throw new Error('SETUP_REQUIRED');let result;try{result=await res.json();}catch{throw new Error('SETUP_REQUIRED');}if(!res.ok)throw new Error(result.code||'CONNECTION_ERROR');return result;
+   if(res.status===404)throw new Error('SETUP_REQUIRED');let result;try{result=await res.json();}catch{throw new Error('SETUP_REQUIRED');}if(!res.ok)throw Object.assign(new Error(result.code||'CONNECTION_ERROR'),{usage:result.usage});return result;
   }finally{clearTimeout(timer);}
  }};
  // Migrate away from the former indefinite session without reading or logging its token.
