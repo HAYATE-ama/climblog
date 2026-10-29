@@ -1,3 +1,4 @@
+import {validateGeneratedDraft} from './proposal-timing.mjs';
 import {knownCoachError,classifyCoachError} from '../../../assets/js/coach-errors.mjs';
 import {coachUsage} from '../../../assets/js/coach-usage.mjs';
 import {normalizeAiSettings,coachDay,buildAiInput,inputHash,publicProposal,validateDailyDraft,restRequired,restMessage,aiRegistryVersion,dailyDraftToPlan,consentForMode} from '../../../assets/js/ai-coach-contract.mjs';
@@ -47,7 +48,7 @@ export function createCoachHandler({db,provider,allowedUsers=[],configured=false
    let result,stage='provider';
    try{
     if(JSON.stringify(normalizeAiSettings(await db.settings(user),mode))!==JSON.stringify(settings))throw new Error('CONSENT_CHANGED');
-    result=await provider(input);stage='validation';const draft=validateDailyDraft(result.draft,settings);stage='save';
+    result=await provider(input);stage='validation';const draft=validateGeneratedDraft(result.draft,settings);stage='save';
     const row=await db.finish({p_user_id:user,p_request_id:body.requestId,p_state:'ready',p_draft:draft,p_model:result.model,p_input:result.inputTokens,p_output:result.outputTokens,p_error:null});
     if(row.state!=='ready')return reply({code:'CONSENT_CHANGED'},409);return reply({proposal:publicProposal(row),usage:await usageNow()});
    }catch(error){
