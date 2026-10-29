@@ -40,3 +40,12 @@ body[data-theme="light"] .trainingMetrics>div{background:#f4f1f8;color:#202b3b}b
 @media(max-width:640px){.campHero{grid-template-columns:1fr;padding:20px;border-radius:17px;gap:22px}.campHero h2{font-size:34px}.campHero .playerChip{margin-bottom:14px}.campLead{margin:12px 0 17px;font-size:12px}.campScene{width:100%;max-width:380px;justify-self:center}.homeMountain{max-height:240px}.campActions{width:100%}.campActions button{flex:1;padding:10px}.campStage{margin-top:17px}.campSectionHead h3{font-size:16px}.questFocus{font-size:16px}.adventureBadge{padding:10px;gap:8px;align-items:flex-start}.adventureBadgeIcon{width:30px;height:30px;font-size:19px}.adventureBadge strong{font-size:11px}.adventureBadge p{font-size:10px}.memoryGrid{grid-template-columns:1fr}.memoryCard{min-height:90px}.goalFields{grid-template-columns:1fr}.goalFocusField{grid-column:auto}.goalFields textarea{font-size:16px}.goalActions select,.goalActions button{min-height:44px}.goalActions{flex-wrap:wrap}.monthTitleGroup{gap:7px}.monthTitleGroup h2{font-size:16px}.todayButton{min-height:36px;padding:5px 8px}}
 @media(max-width:420px){.todayLabel{display:none}.day.today .daynum{padding:1px 4px}.badgeCollection{gap:7px}.adventureBadge{display:block}.adventureBadgeIcon{margin-bottom:9px}}
 @media(prefers-reduced-motion:no-preference){.memoryCard,.adventureBadge{transition:border-color .18s,transform .18s}.memoryCard:hover{transform:translateY(-2px)}}
+
+/* Record input is one modal surface; the page behind it keeps its scroll position. */
+#modal .dialog{overscroll-behavior:contain;max-height:calc(100dvh - 36px)}
+#modalTitle:focus{outline:none}
+#modal .dialog :is(button,input,select,textarea):focus-visible{outline:2px solid var(--orange);outline-offset:2px}
+
+.recordDialogHead{position:sticky;top:-20px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin:-20px -20px 12px;padding:12px 20px;background:var(--panel);border-bottom:1px solid var(--line);z-index:2}
+.recordDialogHead #modalTitle{margin:0;min-width:0}.recordDialogHead button{flex:none;min-width:44px;min-height:44px;border:1px solid var(--line);background:var(--panel2);border-radius:9px;font-size:22px;color:var(--text)}
+#syncConflictNotice{margin:12px 0}#syncConflictNotice p{margin:0 0 10px;font-size:13px}#syncConflictNotice button{min-height:44px;padding:8px 14px;border:1px solid var(--line);border-radius:9px;background:var(--panel2);color:var(--text)}

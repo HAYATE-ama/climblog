@@ -32,11 +32,13 @@ export function buildCloudPayload(storage) {
 }
 
 export function validateMaxTest({ maxType, addedWeightKg, bodyweightKg, edgeDepthMm, holdSeconds }) {
-  const added = Number(addedWeightKg);
-  if (!Number.isFinite(added) || added < 0) return "追加重量は0以上で入力してください。";
-  if (bodyweightKg != null && bodyweightKg !== "" && (!Number.isFinite(Number(bodyweightKg)) || Number(bodyweightKg) < 0)) return "体重は0以上で入力してください。";
-  if (["hangboard", "singleHandLift"].includes(maxType) && !(Number(edgeDepthMm) > 0)) return "ホールド・持ち手の厚さを入力してください。";
-  if (maxType === "hangboard" && !(Number(holdSeconds) > 0)) return "保持時間を入力してください。";
+  if (!['hangboard', 'singleHandLift', 'weightedPullup'].includes(maxType)) return "測定種目を選択してください。";
+  const missing=value=>value==null||String(value).trim()==='';
+  const inRange=(value,min,max)=>!missing(value)&&Number.isFinite(Number(value))&&Number(value)>=min&&Number(value)<=max;
+  if (!inRange(addedWeightKg,0,300)) return "追加重量は0〜300kgで入力してください。重量なしは0を入力してください。";
+  if (!missing(bodyweightKg)&&!inRange(bodyweightKg,0,300)) return "体重は0〜300kgで入力してください。";
+  if (["hangboard", "singleHandLift"].includes(maxType)&&!inRange(edgeDepthMm,1,100)) return "ホールド・持ち手の厚さは1〜100mmで入力してください。";
+  if (maxType === "hangboard"&&!inRange(holdSeconds,1,300)) return "保持時間は1〜300秒で入力してください。";
   return "";
 }
 export function calculateTotalLoad(addedWeightKg, bodyweightKg) {

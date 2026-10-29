@@ -3,7 +3,7 @@ import {normalizeFingerConditions,isRecordedLoad,firstMissingWorkoutLoad,externa
 import {WorkoutSetupStore} from '../assets/js/workout-setup-store.mjs';
 import {makeClimbingCourse} from '../assets/js/climbing-courses.mjs';
 import {normalizeWorkoutPlan,createWorkout,finishWorkoutPhase,prepareWorkoutSave,restoreWorkoutDraft,workoutAsMenu,workoutFromMenu,reviseWorkoutResult} from '../assets/js/workout-model.mjs';
-import {applySetDetails,trainingVolume} from '../assets/js/training-model.mjs';
+import {applySetDetails,trainingVolume,renderTrainingVolumeMarkup} from '../assets/js/training-model.mjs';
 import {summarizeRoutineExercises} from '../assets/js/exercise-history.mjs';
 import {trainingDataQuality} from '../assets/js/training-data-quality.mjs';
 import {renderReadOnlyRecord} from '../assets/js/record-viewer.mjs';
@@ -28,3 +28,29 @@ test('concurrent tabs cannot silently overwrite or delete a newer setup draft',(
 test('setup storage quota failures retain the previous valid draft',()=>{const s=storage(),store=new WorkoutSetupStore(s,'a');store.write({date:'2026-10-28',plan:ground()});const prior=s.getItem(store.key);s.setItem=()=>{throw new Error('quota');};assert.throws(()=>store.write({date:'2026-10-28',plan:{...ground(),title:'new'}}));assert.equal(s.getItem(store.key),prior);});
 
 test('zero is displayed as no weight while the numerical data and unconfigured state remain distinct',()=>{assert.equal(externalLoadLabel({loadKg:0,loadRecorded:true},'added'),'重量なし');assert.equal(externalLoadLabel({loadKg:0,loadRecorded:false},'added'),'未設定');assert.equal(externalLoadLabel({loadKg:0,loadRecorded:false},'added',{missing:'未記録'}),'未記録');assert.equal(externalLoadLabel({loadKg:12,loadRecorded:true},'liftFromGround'),'12kg');const p=ground();p.exercises.forEach(e=>e.sets=[{target:1,loadKg:0,loadRecorded:true,restSeconds:0}]);p.preparationSeconds=0;p.transitionRestSeconds=0;let s=createWorkout(p,'2026-10-28',0,'zero');s=finishWorkoutPhase(s,{now:1000});s=finishWorkoutPhase(s,{now:2000});const rows=prepareWorkoutSave({},s,2000).patch.records;assert.ok(rows.every(r=>r.setDetails[0].loadKg===0&&r.setDetails[0].loadRecorded));assert.match(renderReadOnlyRecord(rows[0]),/重量なし/);assert.equal(rows[0].loadMethod,'liftFromGround');});
+
+
+test('routine timed summaries use neutral labels while preserving stored seconds and maximum hold names',()=>{
+ const row=applySetDetails({kind:'training',trainingMode:'routine',exerciseName:'ボルダーの技術練習',loadMethod:'bodyweight',date:'2026-10-01'},[{reps:0,holdSeconds:600,loadKg:0}]);
+ assert.match(row.summary,/時間式合計600秒/);assert.doesNotMatch(row.summary,/保持/);assert.equal(row.setDetails[0].holdSeconds,600);
+ const html=renderTrainingVolumeMarkup([row]);assert.match(html,/時間式合計/);assert.match(html,/時間式 600秒/);assert.doesNotMatch(html,/保持/);
+ assert.match(renderReadOnlyRecord({kind:'training',trainingMode:'maxTest',exerciseName:'ハングボード保持',maxType:'hangboard',holdSeconds:7,addedWeightKg:10}),/ハングボード保持/);
+});
+
+
+test('uniform weight confirmation survives volume, viewer, history, copy, menu, workout and backup without rewriting legacy zeros',async()=>{
+ const {menuEntry}=await import('../assets/js/training-model.mjs'),{recordSetRows}=await import('../assets/js/record-viewer.mjs'),{recordSummary}=await import('../assets/js/compact-records.mjs'),{copyRecordForDate}=await import('../assets/js/workflow-features.mjs');
+ const base={id:'uniform',date:'2026-10-28',kind:'training',trainingMode:'routine',exerciseName:'自重懸垂',loadMethod:'added',sets:3,reps:5,loadKg:0};
+ for(const [flag,expected]of [[true,true],[false,false],[undefined,false]]){
+  const row={...base,...(flag===undefined?{}:{loadRecorded:flag})},before=JSON.stringify(row),volume=trainingVolume(row);
+  assert.equal(volume.loadCount,expected?3:0);assert.equal(volume.loadTotal,0);
+  assert.equal(summarizeRoutineExercises([row])[0].weightSampleCount,expected?1:0);
+  assert.ok(recordSetRows(row).every(set=>isRecordedLoad(set,'added')===expected));
+  assert.equal(recordSummary(row).secondary,expected?'重量なし':'重量未記録');
+  for(const restored of [validateBackup({records:[row]}).records[0],copyRecordForDate(row,'2026-10-29',[]),menuEntry(row)])assert.equal(restored.loadRecorded,flag);
+  const plan=workoutFromMenu({name:'再利用',entries:[menuEntry(row)]});assert.ok(plan.exercises[0].sets.every(set=>isRecordedLoad(set,'added')===expected));
+  assert.equal(JSON.stringify(row),before);
+ }
+ const legacy={...base,loadKg:10};assert.equal(trainingVolume(legacy).loadCount,3);assert.equal(trainingVolume(legacy).loadTotal,30);assert.equal(summarizeRoutineExercises([legacy])[0].minExternalKg,10);
+ const unknownPositive={...legacy,loadRecorded:false};assert.equal(trainingVolume(unknownPositive).loadCount,0);assert.equal(trainingVolume(unknownPositive).loadTotal,0);assert.equal(summarizeRoutineExercises([unknownPositive])[0].weightSampleCount,0);
+});

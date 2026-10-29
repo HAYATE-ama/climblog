@@ -5,7 +5,7 @@ import {trainingVolume} from './training-model.mjs';
 export function recordSetRows(record){
  if(record.kind!=='training'||record.trainingMode==='maxTest')return [];
  if(record.setDetails?.length)return record.setDetails.map((s,index)=>({set:index+1,reps:Number(s.reps)||0,seconds:Number(s.holdSeconds)||0,loadKg:Number(s.loadKg)||0,...(typeof s.loadRecorded==='boolean'?{loadRecorded:s.loadRecorded}:{})}));
- const sets=Math.max(0,Math.min(200,Math.floor(Number(record.sets)||0)));return Array.from({length:sets},(_,i)=>({set:i+1,reps:Number(record.reps)||0,seconds:0,loadKg:Number(record.loadKg)||0}));
+ const sets=Math.max(0,Math.min(200,Math.floor(Number(record.sets)||0)));return Array.from({length:sets},(_,i)=>({set:i+1,reps:Number(record.reps)||0,seconds:0,loadKg:Number(record.loadKg)||0,...(typeof record.loadRecorded==='boolean'?{loadRecorded:record.loadRecorded}:{})}));
 }
 export function renderReadOnlyRecord(record){
  const r=record,kind={gym:'ジム',outdoor:'外岩',training:'トレーニング'}[r.kind]||'活動',rows=recordSetRows(r),volume=trainingVolume(r);

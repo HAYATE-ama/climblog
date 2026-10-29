@@ -1,3 +1,4 @@
+import {saveCloudSnapshot} from './cloud-sync.mjs';
 import {installAuthLoading} from './auth-loading.mjs';
 import {readVerifiedAccount,preloadAppModules} from './auth-startup.mjs';
 import {accountKeys,loadAccountPayload} from './account-storage.mjs';
@@ -17,7 +18,7 @@ if(!config.supabaseUrl||!config.supabasePublishableKey||config.supabaseUrl.inclu
  const origSet=Storage.prototype.setItem,origRemove=Storage.prototype.removeItem;
  const project=new URL(config.supabaseUrl).hostname.split('.')[0],prefix='climbLogAuth:'+project,tokenKey=prefix+':token',signalKey=prefix+':event',ownerKey=prefix+':owner';
  const authStore=createAuthStorage({local:localStorage,tab:sessionStorage,prefix});
- let client,user=null,ready=false,initializing=false,signup=false,submitting=false,locking=false,loadingEpoch=0,syncTimer=null,writes=Promise.resolve(),localPayload=null,remoteVersion=null,activityWriteAt=0,previousTraining=false,appImportStarted=false;
+ let client,user=null,ready=false,initializing=false,signup=false,submitting=false,locking=false,loadingEpoch=0,syncTimer=null,writes=Promise.resolve(),localPayload=null,remoteVersion=null,activityWriteAt=0,previousTraining=false,appImportStarted=false,syncConflict=false;
  const pendingKey=id=>'climbLogPendingState:'+id;
  const parse=(key,fallback=null)=>{try{return JSON.parse(localStorage.getItem(key)||'null')??fallback;}catch{return fallback;}};
  const writeRaw=(key,value)=>origSet.call(localStorage,key,JSON.stringify(value));
@@ -64,10 +65,29 @@ if(!config.supabaseUrl||!config.supabasePublishableKey||config.supabaseUrl.inclu
   previousTraining=active;const reason=policyReason(authStore.getPolicy(),{trainingActive:active});if(reason){void lock(reason);return false;}
   const owner=localStorage.getItem(ownerKey);if(owner&&owner!==user?.id){void lock('accountChanged',{revoke:false,notify:false});return false;}return true;
  }
+ function showSyncConflict(){
+  syncConflict=true;syncStatus.textContent='同期を保留';
+  let notice=$('syncConflictNotice');if(notice)return;
+  notice=document.createElement('section');notice.id='syncConflictNotice';notice.className='card';notice.setAttribute('role','status');
+  const text=document.createElement('p');text.textContent='別の端末で記録が更新されています。この端末の変更は保管し、クラウドへの上書きを止めました。';
+  const button=document.createElement('button');button.type='button';button.textContent='同期内容を確認';button.onclick=()=>{if(check()&&confirm('入力中の内容やトレーニングを保存してから進んでください。画面を再読み込みし、端末とクラウドの内容を確認しますか？'))location.reload();};
+  notice.append(text,button);$('mainNavigation').after(notice);
+ }
  async function sync(){
-  if(!check()||!user)return false;const id=user.id,epoch=loadingEpoch,pending=readPending(id);if(!pending)return true;
-  syncStatus.textContent='同期中';
-  const send=async()=>{if(!ready||epoch!==loadingEpoch||user?.id!==id||!check())return false;const updatedAt=new Date().toISOString();try{const {error}=await bounded(client.from('user_app_state').upsert({user_id:id,payload:pending.payload,updated_at:updatedAt},{onConflict:'user_id'}));if(error)throw error;if(!ready||epoch!==loadingEpoch)return false;remoteVersion=updatedAt;const latest=readPending(id);if(latest?.revision===pending.revision)origRemove.call(localStorage,pendingKey(id));else if(latest)writeRaw(pendingKey(id),{...latest,baseUpdatedAt:updatedAt});syncStatus.textContent='同期済み';return true;}catch(error){syncStatus.textContent='未同期（この端末に保留）';if(error.status===401||error.code==='PGRST301')void lock('authError');return false;}};
+  if(!check()||!user||syncConflict)return false;const id=user.id,epoch=loadingEpoch;
+  const send=async()=>{
+   if(!ready||epoch!==loadingEpoch||user?.id!==id||!check()||syncConflict)return false;
+   // Read the latest queued revision after earlier writes have finished.
+   const pending=readPending(id);if(!pending)return true;syncStatus.textContent='同期中';
+   try{
+    const result=await saveCloudSnapshot({client,userId:id,payload:pending.payload,baseUpdatedAt:pending.baseUpdatedAt??null,bounded});
+    if(!ready||epoch!==loadingEpoch)return false;
+    if(result.conflict){showSyncConflict();return false;}
+    remoteVersion=result.updatedAt;const latest=readPending(id);
+    if(latest?.revision===pending.revision)origRemove.call(localStorage,pendingKey(id));else if(latest)writeRaw(pendingKey(id),{...latest,baseUpdatedAt:remoteVersion});
+    syncStatus.textContent=readPending(id)?'未同期（この端末に保留）':'同期済み';return true;
+   }catch(error){syncStatus.textContent='未同期（この端末に保留）';if(error.status===401||error.code==='PGRST301')void lock('authError');return false;}
+  };
   writes=writes.then(send,send);return writes;
  }
  Storage.prototype.setItem=function(key,value){
@@ -77,20 +97,21 @@ if(!config.supabaseUrl||!config.supabasePublishableKey||config.supabaseUrl.inclu
   try{stash();}catch{syncStatus.textContent='未同期（端末の空き容量を確認）';}
   clearTimeout(syncTimer);syncTimer=setTimeout(()=>void sync(),500);
  };
- async function initializeApp(payload,epoch){
+ async function initializeApp(payload,epoch,expectedPendingRevision=readPending(user.id)?.revision??null){
   const reason=policyReason(authStore.getPolicy());if(reason){await lock(reason);return;}
   loadAccountPayload(localStorage,payload,origSet,origRemove);localPayload=buildCloudPayload(localStorage);initializing=true;
   appImportStarted=true;
   try{await bounded(import('./app.js'));await bounded(import('./enhancements.js'));}finally{initializing=false;}
-  if(epoch!==loadingEpoch||locking)return;const finalReason=policyReason(authStore.getPolicy());if(finalReason){await lock(finalReason);return;}ready=true;appRoot.inert=false;appRoot.hidden=false;authScreen.hidden=true;authScreen.style.display='none';$('authPassword').value='';client.auth.startAutoRefresh?.();activityWriteAt=Date.now();syncStatus.textContent=readPending(user.id)?'未同期（復元済み）':'同期済み';
+  if(epoch!==loadingEpoch||locking)return;if((readPending(user.id)?.revision??null)!==expectedPendingRevision)throw new Error('未同期の記録が別の画面で更新されました。再読み込みして確認し直してください。');const finalReason=policyReason(authStore.getPolicy());if(finalReason){await lock(finalReason);return;}ready=true;appRoot.inert=false;appRoot.hidden=false;authScreen.hidden=true;authScreen.style.display='none';$('authPassword').value='';client.auth.startAutoRefresh?.();activityWriteAt=Date.now();syncStatus.textContent=readPending(user.id)?'未同期（復元済み）':'同期済み';
   window.climbLogAuthReady=true;window.dispatchEvent(new Event('climblog:authenticated'));if(readPending(user.id))void sync();
  }
  function showPendingChoice(remote,pending,epoch){
   const authorized=()=>{const p=authStore.getPolicy();if(p?.userId!==user?.id||localStorage.getItem(ownerKey)!==user?.id){void lock('accountChanged',{revoke:false,notify:false});return false;}const reason=policyReason(p);if(reason){void lock(reason);return false;}return true;};
+  const unchanged=()=>{if(readPending(user.id)?.revision===pending.revision)return true;const message='未同期の記録が別の画面で更新されました。再読み込みして確認し直してください。';say(message);$('authPendingMessage').textContent=message;return false;};
   const resume=async payload=>{try{authLoading.set(true,'記録を読み込んでいます…');await initializeApp(payload,epoch);authLoading.set(false);}catch(error){hidePrivateUI();say(error.message||'画面を読み込めませんでした。再ログインしてください。');}finally{authLoading.set(false);}};
   const box=$('authPending');box.hidden=false;$('authPendingMessage').textContent='この端末に未同期の変更があり、クラウド側も更新されています。両方を自動では上書きしません。';
-  $('authRestorePending').onclick=async()=>{if(!authorized())return;if(!confirm('端末の未同期内容でクラウドを置き換えますか？クラウド内容を先にバックアップできます。'))return;box.hidden=true;await resume(pending.payload);};
-  $('authKeepRemote').onclick=async()=>{if(!authorized())return;if(!confirm('端末の未同期データを破棄してクラウドを使いますか？必要なら先にバックアップしてください。'))return;origRemove.call(localStorage,pendingKey(user.id));box.hidden=true;await resume(remote.payload||null);};
+  $('authRestorePending').onclick=async()=>{if(!authorized()||!unchanged())return;if(!confirm('端末の未同期内容でクラウドを置き換えますか？クラウド内容を先にバックアップできます。'))return;if(!authorized()||!unchanged())return;writeRaw(pendingKey(user.id),{...pending,baseUpdatedAt:remoteVersion});box.hidden=true;await resume(pending.payload);};
+  $('authKeepRemote').onclick=async()=>{if(!authorized()||!unchanged())return;if(!confirm('端末の未同期データを破棄してクラウドを使いますか？必要なら先にバックアップしてください。'))return;if(!authorized()||!unchanged())return;origRemove.call(localStorage,pendingKey(user.id));box.hidden=true;await resume(remote.payload||null);};
   $('authBackupPending').onclick=()=>{if(authorized())download(pending.payload,'climblog-unsynced-backup.json');};$('authBackupRemote').onclick=()=>{if(authorized())download(remote.payload||{},'climblog-cloud-backup.json');};
  }
  async function start(session){

@@ -49,3 +49,17 @@ test("removeRecord deletes only the selected record and leaves other history int
   assert.deepEqual(removeRecord(rows, "old-1"), [rows[1], rows[2]]);
   assert.equal(removeRecord(rows, "missing").length, 3);
 });
+
+
+test("maximum measurements reject missing, non-finite and out-of-range values before saving", () => {
+  const valid={maxType:'hangboard',addedWeightKg:'0',bodyweightKg:'65',edgeDepthMm:'20',holdSeconds:'7'};
+  assert.equal(validateMaxTest(valid),'');
+  for(const value of ['', ' ', null, undefined, -1, 300.1, Infinity, NaN, '1e309']) assert.match(validateMaxTest({...valid,addedWeightKg:value}),/追加重量/);
+  for(const value of [-1, 300.1, Infinity, '1e309']) assert.match(validateMaxTest({...valid,bodyweightKg:value}),/体重/);
+  for(const value of ['', null, 0, 0.5, 100.1, Infinity, '1e309']) assert.match(validateMaxTest({...valid,edgeDepthMm:value}),/厚さ/);
+  for(const value of ['', null, 0, 0.5, 300.1, Infinity, '1e309']) assert.match(validateMaxTest({...valid,holdSeconds:value}),/保持時間/);
+  for(const maxType of ['', 'unknown', 'singleHandLiftLeft']) assert.match(validateMaxTest({...valid,maxType}),/測定種目/);
+  assert.equal(validateMaxTest({...valid,addedWeightKg:300,bodyweightKg:'',edgeDepthMm:100,holdSeconds:300}),'');
+  assert.equal(validateMaxTest({maxType:'weightedPullup',addedWeightKg:0}),'');
+  assert.equal(validateMaxTest({maxType:'singleHandLift',addedWeightKg:0,edgeDepthMm:20}),'');
+});

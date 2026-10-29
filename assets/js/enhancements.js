@@ -9,6 +9,7 @@ import {installPixelCompanion} from './pixel-companion.mjs';
 import {installPwa} from './pwa.js';
 import { prepareBodySettings } from './body-settings.mjs';
 import { installRecordWorkflow } from './record-workflow.js';
+import {installRecordDialog} from './record-dialog.mjs';
 import { getBodyWeightForDate } from './features.mjs';
 import { RecordDrafts } from './record-drafts.mjs';
 
@@ -78,12 +79,26 @@ function fillDraft(kind,values){
 }
 function clearForm(kind){if(kind==='gym'){for(const [id,value] of Object.entries({gymGrade:'',gymSends:'0',gymTries:'0',gymMemo:'',gymOutcome:'completed'}))setControl(id,value);syncGrade();updateOutcome();}else{for(const id of ['trainingSets','trainingReps','trainingDuration','trainingLoad','trainingRpe'])setControl(id,'0');setControl('trainingMemo','');setControl('routineLoadMethod','added');}window.dispatchEvent(new CustomEvent('climblog:formCleared',{detail:kind}));}
 function hasCurrent(kind){return kind==='gym'?Boolean($('#gymGrade').value):['trainingSets','trainingReps','trainingDuration','trainingLoad','trainingRpe'].some(id=>Number($('#'+id).value)>0)||Boolean($('#trainingMemo').value.trim());}
+function updateRecordSaveLabel(){
+  const kind=$('#kind').value,state=states[kind],batch=!recordApi.isEditing()&&(kind==='gym'||kind==='training'&&$('#trainingMode').value==='routine');
+  if(recordApi.isEditing()){$('#save').textContent='変更を保存';return;}
+  if(!batch){$('#save').textContent='記録を保存';return;}
+  if(state.editingId){$('#save').textContent='変更してまとめて保存';return;}
+  const count=state.drafts.size+(hasCurrent(kind)?1:0);
+  $('#save').textContent=count>1?`まとめて保存（${count}項目）`:count?'記録を保存（1項目）':'記録を保存';
+}
+$('#modal').addEventListener('input',updateRecordSaveLabel);
+$('#modal').addEventListener('change',()=>queueMicrotask(updateRecordSaveLabel));
+$('#modal').addEventListener('click',()=>queueMicrotask(updateRecordSaveLabel));
+window.addEventListener('climblog:formRestored',()=>queueMicrotask(updateRecordSaveLabel));
+window.addEventListener('climblog:formUpdated',()=>queueMicrotask(updateRecordSaveLabel));
 function renderDrafts(kind){
   const state=states[kind],panel=panels[kind];
   $('ul',panel).replaceChildren(...state.drafts.list().map((entry,index)=>{const item=document.createElement('li'),label=document.createElement('span'),actions=document.createElement('div');item.dataset.draftId=entry.id;item.classList.toggle('isEditing',state.editingId===entry.id);actions.className='batchRowActions';const row=entry.values;label.textContent=kind==='gym'?`${row.grade} · ${row.gymOutcome==='failed'?'敗退':`完登 ${row.sends}`} · ${row.tries}トライ`:`${row.exerciseName} · ${row.sets}セット · ${row.reps}回 · ${row.loadKg}kg · ${row.durationMinutes}分`;for(const [action,title] of [['edit','編集'],['remove','外す']]){const button=document.createElement('button');button.type='button';button.dataset[action]=entry.id;button.textContent=title;button.setAttribute('aria-label',`${index+1}件目を${title}`);actions.append(button);}item.append(label,actions);return item;}));
   $('[data-batch-add]',panel).textContent=state.editingId?'この項目を更新':`＋ ${kind==='gym'?'課題':'種目'}を追加`;
   $('[data-batch-cancel]',panel).hidden=!state.editingId;
-  $('[data-batch-message]',panel).textContent=state.editingId?'入力欄で内容を変更し、「この項目を更新」を押してください。':`${state.drafts.size}件追加済み。同じ種目も何度でも追加できます。`;
+  $('[data-batch-message]',panel).textContent=state.editingId?'入力欄で内容を変更し、「この項目を更新」を押してください。':`${state.drafts.size}項目追加済み。最後に下の「記録を保存」または「まとめて保存」で確定します。`;
+  updateRecordSaveLabel();
 }
 function finishDraftEdit(kind){const state=states[kind],resume=state.resume;state.editingId=null;state.resume=null;if(resume)restoreForm(kind,resume);else clearForm(kind);renderDrafts(kind);}
 function applyDraftEdit(kind){const values=recordApi.collect();if(!values)return false;states[kind].drafts.update(states[kind].editingId,values);finishDraftEdit(kind);return true;}
@@ -118,5 +133,6 @@ new MutationObserver(decorateDetails).observe($('#detail'),{childList:true,subtr
 installTrainingStudio({recordApi,states,panels,setControl,fillDraft,renderDrafts});
 installLifeTools();installPixelCompanion();installPwa();installCoachScreen();installWorkoutScreen();installRecordViewer();
 installRecordWorkflow({recordApi,states,panels,setControl,snapshotForm,restoreForm,fillDraft,clearForm,syncGrade,updateOutcome,renderDrafts,updateTrainingWeightInfo});
+installRecordDialog();
 
 installSettingsDrawer();installOutdoorWeather();

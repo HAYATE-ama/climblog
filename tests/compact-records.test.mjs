@@ -9,3 +9,17 @@ test('markup escapes untrusted record fields, identifiers and invalid swatch val
 test('compact rendering does not mutate records or expose memos in lists',()=>{const r={id:'a',kind:'outdoor',date:'2026-10-18',routeName:'とても長い課題名',memo:'private note'},snapshot=JSON.stringify(r);const html=outdoorStatMarkup(r);assert.doesNotMatch(html,/private note/);assert.match(recordAccessibleLabel(r),/とても長い課題名/);assert.equal(JSON.stringify(r),snapshot);});
 
 test('variable loads are shown as a range instead of suggesting every set used the maximum',()=>{assert.equal(recordSummary({kind:'training',setDetails:[{reps:6,loadKg:10},{reps:4,loadKg:12}],loadKg:12}).secondary,'負荷 10〜12kg');assert.equal(recordSummary({kind:'outdoor',result:'attempt',attemptsRange:'6-10'}).secondary,'トライ · 6〜10回');});
+
+
+test('compact weights exclude unconfirmed values without presenting unknown samples as zero loads',()=>{
+ const base={kind:'training',loadMethod:'added',exerciseName:'自重懸垂'};
+ const mixed={...base,setDetails:[{reps:5,loadKg:12,loadRecorded:false},{reps:5,loadKg:5,loadRecorded:true}]},before=JSON.stringify(mixed);
+ assert.equal(recordSummary(mixed).secondary,'負荷 5kg（未記録あり）');
+ assert.equal(recordSummary({...base,setDetails:[{reps:5,loadKg:12,loadRecorded:false}]}).secondary,'重量未記録');
+ assert.equal(recordSummary({...base,setDetails:[{reps:5,loadKg:0,loadRecorded:true},{reps:5,loadKg:12,loadRecorded:false}]}).secondary,'重量なし（未記録あり）');
+ assert.equal(recordSummary({...base,loadKg:0}).secondary,'重量未記録');
+ assert.equal(recordSummary({...base,loadMethod:'bodyweight',loadKg:0}).secondary,'重量なし');
+ assert.equal(recordSummary({...base,loadKg:5}).secondary,'負荷 5kg');
+ assert.equal(recordSummary({...base,setDetails:[{reps:5,loadKg:10},{reps:5,loadKg:12}]}).secondary,'負荷 10〜12kg');
+ assert.equal(JSON.stringify(mixed),before);
+});

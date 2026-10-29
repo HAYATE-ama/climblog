@@ -18,3 +18,15 @@ test('backup rejects invalid or prototype-polluted files',()=>{assert.throws(()=
 test('restore merge deduplicates and only restores settings on request',()=>{const current={records:[base],goals:{focus:'keep'}},incoming={records:[{...base,memo:'backup'},{...base,id:'r2'}],goals:{focus:'new'}};const keep=mergeBackup(current,incoming);assert.equal(keep.patch.records.length,2);assert.equal(keep.patch.records[0].memo,undefined);assert.equal(keep.patch.goals,undefined);const overwrite=mergeBackup(current,incoming,{overwrite:true,settings:true});assert.equal(overwrite.patch.records[0].memo,'backup');assert.equal(overwrite.patch.goals.focus,'new');});
 test('account cloud payload includes new collections and legacy loads clear other users data',()=>{const map=new Map(),storage={getItem:k=>map.get(k)||null,setItem:(k,v)=>map.set(k,v),removeItem:k=>map.delete(k)};writeAccountPatch(storage,{dailyJournals:[{date:'2026-10-24',reflection:'発見'}],trainingPresets:[{id:'p'}]});assert.equal(buildCloudPayload(storage).dailyJournals[0].reflection,'発見');loadAccountPayload(storage,{records:[]},storage.setItem,storage.removeItem);for(const name of ['dailyJournals','trainingMenus','trainingPresets','recycleBin','recordHistory'])assert.deepEqual(JSON.parse(map.get(accountKeys[name])),[]);});
 test('partial storage failure rolls back the multi-collection transaction',()=>{const map=new Map([['climbLogRecords','old'],['climbLogRecordHistory','history']]);let failed=false;const storage={getItem:k=>map.get(k)||null,removeItem:k=>map.delete(k),setItem:(k,v)=>{if(k==='climbLogRecordHistory'&&!failed){failed=true;throw new Error('quota');}map.set(k,v);}};assert.throws(()=>writeAccountPatch(storage,{records:[base],recordHistory:[1]}));assert.equal(map.get('climbLogRecords'),'old');assert.equal(map.get('climbLogRecordHistory'),'history');});
+
+
+test('paired maximum measurements share the single-hand entry bounds without changing old history',async()=>{
+ assert.deepEqual(makePairedLifts({...base,maxType:'singleHandLift'},0,300).map(r=>r.addedWeightKg),[0,300]);
+ for(const value of [300.1,1000,Infinity,'1e309','']){
+  assert.throws(()=>makePairedLifts(base,value,10),/0〜300kg/);
+  assert.throws(()=>makePairedLifts(base,10,value),/0〜300kg/);
+ }
+ const {validateBackup}=await import('../assets/js/backup-model.mjs');
+ const old={id:'old-lift',date:'2026-01-01',kind:'training',trainingMode:'maxTest',maxType:'singleHandLift',exerciseName:'片手リフト（地面から）',addedWeightKg:350,totalLoadKg:350,liftHand:'right'};
+ assert.equal(validateBackup({records:[old]}).records[0].addedWeightKg,350);assert.equal(old.addedWeightKg,350);
+});

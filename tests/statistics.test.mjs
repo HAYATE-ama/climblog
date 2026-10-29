@@ -18,3 +18,10 @@ test('available years include body-only data, while every original source record
 test('training detail distinguishes unrecorded time and session effort from exercise effort',()=>{const base={kind:'training',trainingMode:'routine',exerciseName:'片手リフト（地面から）（左）',date:'2026-10-01',loadMethod:'liftFromGround',sets:1,reps:2,loadKg:10,gripType:'halfCrimp',edgeDepthMm:20};const rows=[{...base,rpe:8,feedbackScope:'session',workoutSessionId:'same'},{...base,exerciseName:'片手リフト（地面から）（右）',rpe:8,feedbackScope:'session',workoutSessionId:'same'},{...base,rpe:3,edgeDepthMm:25}],html=trainingStatsDetailsMarkup(rows);assert.match(html,/時間未記録/);assert.ok(!html.includes('0分'));assert.match(html,/全体の平均 8 \/ 10（1回分）/);assert.match(html,/種目別の平均 3/);assert.match(html,/20mm/);assert.match(html,/25mm/);});
 test('statistics detail escapes custom species names and values instead of creating HTML elements',()=>{const html=trainingStatsDetailsMarkup([{kind:'training',date:'2026-10-01',exerciseName:'<img src=x onerror=bad>',sets:1,reps:1}]);assert.ok(!html.includes('<img'));assert.match(html,/&lt;img/);});
 test('same-day maximum measurements use their recorded creation order when timestamps exist',()=>{const state={records:[max('earlier','2026-10-01',{addedWeightKg:12,createdAt:'2026-10-01T08:00:00Z'}),max('later','2026-10-01',{addedWeightKg:13,createdAt:'2026-10-01T09:00:00Z'})]};const d=buildStatsData(state,q('strength'));assert.equal(d.metrics[0][1],13);assert.equal(d.metrics[1][1],'+1');});
+
+
+test('timed climbing practice is labeled as timed activity rather than a continuous hold',()=>{
+ const row={kind:'training',trainingMode:'routine',exerciseName:'ボルダーの技術練習',date:'2026-10-01',setDetails:[{reps:0,holdSeconds:600,loadKg:0,loadRecorded:true}],recordSource:'timer',loadMethod:'bodyweight',durationMinutes:10};
+ const before=JSON.stringify(row),html=trainingStatsDetailsMarkup([row]);
+ assert.match(html,/時間式合計 600秒/);assert.match(html,/時間式 600秒/);assert.doesNotMatch(html,/保持/);assert.equal(JSON.stringify(row),before);
+});
