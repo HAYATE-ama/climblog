@@ -63,3 +63,5 @@ body[data-theme="light"] .trainingMetrics>div{background:#f4f1f8;color:#202b3b}b
 .recordFeedback p{margin:0;flex:1;font-size:13px;line-height:1.7;overflow-wrap:anywhere}
 .recordFeedback button{flex:none;min-height:44px;min-width:44px;font-size:20px;border-radius:8px;background:var(--panel2)}
 .recordFeedback button:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
+
+#appRoot>header,body[data-theme="light"] #appRoot>header{background:var(--bg)}
