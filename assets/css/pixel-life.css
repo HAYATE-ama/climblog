@@ -15,3 +15,24 @@
 .companionName{color:var(--muted);font-size:12px;flex:none}.quietSpeech p{color:var(--text);font-size:15px;line-height:1.9;margin:0;overflow-wrap:anywhere}
 @media(max-width:640px){.quietHome{margin:16px auto 24px}.companionScene{border-radius:14px}.quietSpeech{margin-top:18px;gap:12px;padding:0 4px}.quietSpeech p{font-size:14px}}
 @media(prefers-reduced-motion:reduce){.companionScene{scroll-behavior:auto;transition:none}}
+
+/* A calm landscape rather than a dashboard: the character remains the main event. */
+#appRoot:has(#homeView:not([hidden])) main.layout>.heading{display:none}
+.landscapeHome{width:min(100%,880px);margin:12px auto 28px}
+.homeIntro{margin:20px 0 22px}.homeKicker{display:flex;align-items:center;justify-content:space-between;gap:16px;color:var(--muted);font-size:11px;letter-spacing:.04em}.homeKicker time{font-variant-numeric:tabular-nums;letter-spacing:0;white-space:nowrap}
+.homeIntro h2{margin:12px 0 0;color:var(--text);font-size:clamp(25px,3.3vw,38px);font-weight:650;line-height:1.5;letter-spacing:-.045em}
+.landscapeHome .companionScene{position:relative;border-radius:24px;border:1px solid var(--line);background:#304c5d;box-shadow:0 14px 48px #17251e14;isolation:isolate}
+.landscapeHome .companionScene canvas{width:100%;height:auto;aspect-ratio:5/3;image-rendering:pixelated;display:block}
+.homeTapHint{text-align:right;margin:9px 3px 0;font-size:10px;letter-spacing:.02em;color:var(--muted)}
+.homeFooter{display:flex;align-items:center;justify-content:space-between;gap:30px;padding:26px 4px 0}
+.landscapeHome .quietSpeech{display:grid;gap:6px;min-height:58px;flex:1;margin:0;padding:0;max-width:none}
+.landscapeHome .companionName{display:flex;align-items:center;gap:7px;font-size:11px;letter-spacing:.08em}.landscapeHome .companionName:before{content:'';width:5px;height:5px;background:var(--orange);border-radius:50%}
+.landscapeHome .quietSpeech p{font-size:15px;line-height:1.8;letter-spacing:.01em;min-height:1.8em}
+.homeQuick{position:relative;flex:none}.homeQuick>summary{display:flex;align-items:center;justify-content:center;gap:7px;min-height:48px;padding:12px 20px;background:var(--orange);color:#21140b;border:1px solid var(--orange);border-radius:14px;font-size:14px;font-weight:700;list-style:none;cursor:pointer;box-shadow:0 5px 18px #ff6f0014;white-space:nowrap}
+.homeQuick>summary::-webkit-details-marker{display:none}.homeQuick>summary>span{font-size:20px;font-weight:400;line-height:1}.homeQuick>summary:hover{filter:brightness(1.06)}
+.homeQuickOptions{position:absolute;right:0;bottom:calc(100% + 12px);width:min(260px,calc(100vw - 40px));padding:7px;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:14px;box-shadow:0 14px 48px #0003;z-index:4}
+.homeQuickOptions button{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:48px;padding:12px;text-align:left;border-radius:9px;font-size:13px}.homeQuickOptions button:hover{background:var(--panel2)}.homeQuickOptions button>span{font-size:20px;color:var(--muted)}
+.homeQuick :is(summary,button):focus-visible{outline:2px solid var(--orange);outline-offset:4px}
+@media(max-width:640px){.landscapeHome{margin:8px auto 16px}.homeIntro{margin:16px 4px 18px}.homeIntro h2{font-size:25px;line-height:1.55;margin-top:10px}.homeKicker{font-size:10px;gap:8px}.landscapeHome .companionScene{border-radius:18px}.homeTapHint{font-size:10px;margin-top:8px}.homeFooter{padding:20px 4px 0;gap:18px;align-items:stretch;flex-direction:column}.landscapeHome .quietSpeech{min-height:68px}.landscapeHome .quietSpeech p{font-size:14px}.homeQuick{align-self:flex-end}.homeQuick>summary{min-height:48px;padding:11px 18px;border-radius:12px}}
+@media(max-width:350px){.homeIntro h2{font-size:22px}.homeFooter{padding-top:16px}.landscapeHome .quietSpeech p{font-size:13px}}
+@media(prefers-reduced-motion:no-preference){.homeQuick>summary{transition:filter .15s,box-shadow .15s}.homeQuick[open]>summary{box-shadow:0 0 0 4px #ff6f0014}}

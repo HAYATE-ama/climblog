@@ -1,3 +1,4 @@
+import {installHomeActions} from './home-screen.mjs';
 import {installOutdoorWeather} from './outdoor-weather.mjs';
 import {installSettingsDrawer} from './settings-drawer.mjs';
 import {installRecordViewer} from './record-viewer.mjs';
@@ -137,4 +138,4 @@ installLifeTools();installPixelCompanion();installPwa();installCoachScreen();ins
 installRecordWorkflow({recordApi,states,panels,setControl,snapshotForm,restoreForm,fillDraft,clearForm,syncGrade,updateOutcome,renderDrafts,updateTrainingWeightInfo});
 installRecordDialog();installOutdoorInput();installRecordFeedback();
 
-installSettingsDrawer();installOutdoorWeather();
+installSettingsDrawer();installOutdoorWeather();installHomeActions();
