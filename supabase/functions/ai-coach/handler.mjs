@@ -23,7 +23,7 @@ export function createCoachHandler({db,provider,allowedUsers=[],configured=false
    if(body.action==='status'){
     const rows=await db.requests(user,day),today=rows.filter(r=>r.plan_date===day),ready=today.find(r=>r.state==='ready'&&r.settings_snapshot?.consentVersion===consentForMode(mode));
     const latest=today[0];const lastError=latest?.state==='failed'?knownCoachError(latest.error_code):null;
-    return reply({configured,capabilities:{consent:true,dayPlan:true,note:true},mode,settings,day,lastError,proposal:restRequired(settings)?null:publicProposal(ready),restAdvice:restRequired(settings)?restMessage(settings):null,attempted:today.length>0,pending:today.some(r=>r.state==='processing'),usage:await usageNow()});
+    return reply({configured,capabilities:{consent:true,dayPlan:true,note:true,goalPlan:true},mode,settings,day,lastError,proposal:restRequired(settings)?null:publicProposal(ready),restAdvice:restRequired(settings)?restMessage(settings):null,attempted:today.length>0,pending:today.some(r=>r.state==='processing'),usage:await usageNow()});
    }
    if(body.action==='consent'){
     if(!['accepted','declined'].includes(body.decision))return reply({code:'INVALID'},400);
