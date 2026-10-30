@@ -1,4 +1,4 @@
-const CACHE='climblog-shell-20261030-coach-production1-'+self.registration.scope;
+const CACHE='climblog-shell-20261030-coach-free-text1-'+self.registration.scope;
 const SHELL=['./','./index.html','./manifest.webmanifest','./assets/css/interface.css','./assets/css/pixel-life.css','./assets/css/coach.css','./assets/css/workout.css','./assets/css/record-view.css','./assets/css/auth.css','./assets/css/compact-layout.css','./assets/css/settings-drawer.css','./assets/icons/icon-192.png','./assets/icons/icon-512.png'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL))));
 self.addEventListener('activate',event=>event.waitUntil(Promise.all([caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith('climblog-shell-')&&key.endsWith(self.registration.scope)&&key!==CACHE).map(key=>caches.delete(key)))),self.clients.claim()])));

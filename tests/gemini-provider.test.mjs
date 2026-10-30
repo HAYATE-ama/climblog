@@ -15,3 +15,11 @@ test('Gemini payload never traverses personal data and excludes even dates and l
 test('Gemini cooldown migration retains lock and service-only RPC permissions',async()=>{const {readFile}=await import('node:fs/promises');const sql=await readFile(new URL('../supabase/migrations/202610280002_gemini_free.sql',import.meta.url),'utf8');assert.match(sql,/pg_advisory_xact_lock/);assert.match(sql,/interval '60 seconds'/);assert.match(sql,/RATE_LIMIT/);assert.match(sql,/consentVersion'=p_settings/);assert.match(sql,/from public,anon,authenticated/);assert.ok(!sql.includes('update public.user_app_state'));});
 
 test('legacy models keep explicit 2.5 settings without silently switching to another model',async()=>{for(const model of ['gemini-2.5-flash-lite','gemini-2.5-flash']){let calls=0;await createProvider({key:'mock-only',model,fetchImpl:async(url,init)=>{calls++;assert.ok(url.endsWith('/'+model+':generateContent'));const config=JSON.parse(init.body).generationConfig;assert.equal(config.thinkingConfig.thinkingBudget,0);assert.equal(config.thinkingConfig.thinkingLevel,undefined);return Response.json(success);}})({});assert.equal(calls,1);}});
+
+
+test('free text goal, context and course requests reach the Gemini body unchanged, without stored personal records',async()=>{
+ const settings=normalizeAiSettings({planningMode:'goal',goal:'初段を目指して足使いを改善したい',goalContext:'週2回ジムで登れます',note:'このあと外岩に行くため、準備を中心に。\n疲労を残したくない。'});
+ const privateState=new Proxy({},{get(){throw new Error('Stored personal data must not be read');}}),input=buildAiInput(privateState,settings,'2026-10-30');let calls=0;
+ const provider=createProvider({key:'mock-only',fetchImpl:async(_,init)=>{calls++;const body=JSON.parse(init.body),sent=JSON.parse(body.contents[0].parts[0].text);assert.equal(sent.goal,settings.goal);assert.equal(sent.goalContext,settings.goalContext);assert.equal(sent.note,settings.note);assert.equal(sent.history,undefined);assert.equal(sent.body,undefined);assert.equal(sent.condition,undefined);assert.ok(body.systemInstruction.parts[0].text.includes('種目選択・順序・運動量に反映'));return Response.json(success);}});
+ await provider(input);assert.equal(calls,1);
+});
