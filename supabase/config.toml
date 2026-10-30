@@ -1,3 +1,6 @@
 project_id = "climblog"
 [functions.ai-coach]
 verify_jwt = true
+
+[functions.weather-advisor]
+verify_jwt = true

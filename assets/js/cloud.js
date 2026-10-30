@@ -46,11 +46,12 @@ if(!config.supabaseUrl||!config.supabasePublishableKey||config.supabaseUrl.inclu
  }
  const networkFetch=async(input,init={})=>{const controller=new AbortController(),abort=()=>controller.abort(init.signal?.reason);if(init.signal?.aborted)abort();init.signal?.addEventListener('abort',abort,{once:true});const timer=setTimeout(()=>controller.abort(),10000);try{return await fetch(input,{...init,signal:controller.signal});}finally{clearTimeout(timer);init.signal?.removeEventListener('abort',abort);}};
  client=createClient(config.supabaseUrl,config.supabasePublishableKey,{auth:{storage:authStore.storage,storageKey:tokenKey,persistSession:true,autoRefreshToken:false},global:{fetch:networkFetch}});
- window.climbLogCoachTransport={async request(body){
+ window.climbLogCoachTransport={async request(body,{service='ai-coach'}={}){
+  if(!['ai-coach','weather-advisor'].includes(service))throw new Error('INVALID');
   if(!check()||!user)throw new Error('AUTH_REQUIRED');const id=user.id,epoch=loadingEpoch;
   const {data,error}=await client.auth.getSession();if(error||!data.session||!check()||epoch!==loadingEpoch)throw new Error('AUTH_REQUIRED');
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),65000);
-  try{const res=await fetch(config.supabaseUrl+'/functions/v1/ai-coach',{method:'POST',signal:controller.signal,headers:{apikey:config.supabasePublishableKey,Authorization:'Bearer '+data.session.access_token,'Content-Type':'application/json'},body:JSON.stringify(body)});
+  try{const res=await fetch(config.supabaseUrl+'/functions/v1/'+service,{method:'POST',signal:controller.signal,headers:{apikey:config.supabasePublishableKey,Authorization:'Bearer '+data.session.access_token,'Content-Type':'application/json'},body:JSON.stringify(body)});
    if(!check()||epoch!==loadingEpoch||id!==user?.id)throw new Error('AUTH_REQUIRED');
    if(res.status===404)throw new Error('SETUP_REQUIRED');let result;try{result=await res.json();}catch{throw new Error('SETUP_REQUIRED');}if(!res.ok)throw Object.assign(new Error(result.code||'CONNECTION_ERROR'),{usage:result.usage});return result;
   }finally{clearTimeout(timer);}

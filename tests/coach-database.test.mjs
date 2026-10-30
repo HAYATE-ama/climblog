@@ -34,6 +34,7 @@ test('real database adapter handles minimal settings save then one mocked genera
   if(url.pathname==='/rest/v1/ai_coach_settings'){if(init.method==='POST'){settings=body.settings;settingsWrites++;return new Response(null,{status:201});}return json([{settings}]);}
   if(url.pathname==='/rest/v1/ai_coach_requests'){if(url.searchParams.get('select')==='id')return json(row?[{id:row.id}]:[]);if(url.searchParams.get('select')==='requested_at')return json(row?[{requested_at:row.requested_at}]:[]);return json(row?[row]:[]);}
   if(url.pathname==='/rest/v1/rpc/ai_coach_claim_v2'){claims++;row={id:body.p_request_id,user_id:uid,plan_date:body.p_day,state:'processing',settings_snapshot:body.p_settings,requested_at:now.toISOString(),input_hash:body.p_hash};return json({action:'created',request:row});}
+  if(url.pathname==='/rest/v1/rpc/ai_combined_usage')return json({count:row?1:0,latestAt:row?.requested_at||null});
   if(url.pathname==='/rest/v1/rpc/ai_coach_finish'){row={...row,state:body.p_state,draft:body.p_draft,model:body.p_model,finished_at:now.toISOString()};return json(row);}
   throw new Error('Unexpected mocked database route');
  }});
@@ -42,3 +43,5 @@ test('real database adapter handles minimal settings save then one mocked genera
  const saved=await send({action:'saveSettings',settings:{...settings,availableMinutes:30,note:'このあと外岩に行くので、準備を中心にしたい。\n補強は軽めで。'}});assert.equal(saved.status,200);assert.equal((await saved.json()).settings.enabled,true);assert.equal(settingsWrites,1);assert.equal(providerCalls,0);
  const generated=await send({action:'generate',requestId,force:false});assert.equal(generated.status,200);const result=await generated.json();assert.equal(result.proposal.draft.title,'テスト用ウォームアップ');assert.equal(result.proposal.proposalId,requestId);assert.equal(providerCalls,1);assert.equal(claims,1);assert.equal(result.usage.today,1);assert.equal(result.proposal.settings.note,settings.note);
 });
+
+test('combined usage reads only count and timestamp through one service-only RPC',async()=>{let calls=0;const db=createDatabase({...options,fetchImpl:async(url,init)=>{calls++;assert.equal(url,options.url+'/rest/v1/rpc/ai_combined_usage');assert.equal(init.method,'POST');assert.deepEqual(JSON.parse(init.body),{p_day:'2026-10-31'});return json({count:3,latestAt:'2026-10-31T00:00:00Z'});}});assert.deepEqual(await db.globalUsage('2026-10-31'),{count:3,latestAt:'2026-10-31T00:00:00Z'});assert.equal(calls,1);});

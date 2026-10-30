@@ -1,0 +1,6 @@
+import {createDatabase} from '../ai-coach/database.mjs';
+export function createWeatherDatabase({url,anonKey,serviceKey,fetchImpl=fetch}){
+ const auth=createDatabase({url,anonKey,serviceKey,fetchImpl});
+ async function rest(path,{method='GET',body}={}){const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);try{const response=await fetchImpl(url+'/rest/v1/'+path,{method,signal:controller.signal,headers:{apikey:serviceKey,Authorization:'Bearer '+serviceKey,'Content-Type':'application/json',Prefer:'return=minimal'},...(body?{body:JSON.stringify(body)}:{})});if(!response.ok)throw new Error('SETUP_REQUIRED');if(response.status===204)return null;const text=await response.text();return text?JSON.parse(text):null;}finally{clearTimeout(timer);}}
+ return {authenticate:auth.authenticate,async today(user,day){return (await rest('weather_ai_requests?user_id=eq.'+encodeURIComponent(user)+'&plan_date=eq.'+day+'&select=*'))?.[0]||null;},claim:args=>rest('rpc/weather_ai_claim',{method:'POST',body:args}),finish:(user,day,value)=>rest('weather_ai_requests?user_id=eq.'+encodeURIComponent(user)+'&plan_date=eq.'+day+'&state=eq.processing',{method:'PATCH',body:{...value,finished_at:new Date().toISOString()}})};
+}

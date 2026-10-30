@@ -48,3 +48,8 @@ button.outdoorProblemRow.compactOutdoor{display:block;width:100%;text-align:left
 
 /* Keep a single, explicit way back from record filters on narrow screens. */
 .searchControls #clearRecordSearch{grid-column:1/-1;justify-self:start;min-height:44px;font-size:13px;padding:8px 12px}
+
+/* Outdoor planner: symbols and text accompany all status colors. */
+.day.weatherSkip{background:color-mix(in srgb,var(--panel2) 88%,#e35a5a 12%)}.day.weatherUnknown{background:color-mix(in srgb,var(--panel2) 88%,#8593a4 12%)}.weatherAdvisor{margin-top:12px;border-top:1px solid var(--line);padding-top:12px}.weatherAdvisor summary{font-size:13px;cursor:pointer}.weatherAdvisor label{display:flex;align-items:flex-start;gap:8px;font-size:12px;margin:12px 0}.weatherAdvisor input[type=checkbox]{width:20px;height:20px;flex:none}.weatherActions{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}.weatherActions button{min-height:44px;white-space:normal}.outdoorWeatherSummary select{max-width:100%;min-height:44px;margin-bottom:8px}.outdoorSettingsForm details{min-width:0}.outdoorSettingsForm details>label{display:block;margin:12px 0}.outdoorSettingsForm details input:not([type=checkbox]),.outdoorSettingsForm details select{width:100%;min-width:0;box-sizing:border-box}.outdoorSettingsForm details input[type=checkbox]{width:20px;height:20px;vertical-align:middle}.day .dayWeather{font-size:clamp(8px,2.2vw,11px)}
+
+.outdoorWeatherSummary>label{display:block;margin-bottom:6px}.outdoorWeatherSummary>strong{display:block}.day .dayWeather{max-width:100%;overflow:hidden;text-overflow:ellipsis}
