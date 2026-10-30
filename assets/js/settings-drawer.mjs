@@ -9,7 +9,7 @@ export function installSettingsDrawer(){
  document.body.append(drawer);drawer.querySelector('.settingsDrawerScroll').append(view);home.hidden=true;view.hidden=false;
  const appearancePanel=document.createElement('section');appearancePanel.id='settingsAppearancePanel';appearancePanel.append(appearance,groups.find(g=>g.querySelector('#weekStartSetting')));view.append(appearancePanel);
  const dataPanel=document.createElement('section');dataPanel.id='settingsDataPanel';dataPanel.append(data);view.append(dataPanel);
- $('settingsDrawerFooter').append($('settingsSyncStatus'),$('signOut'));
+ $('settingsDrawerFooter').append($('settingsSyncStatus'),$('signOut'));$('gymSaveStatus').setAttribute('role','status');
  const tools=$('dataDialog');tools.classList.add('settingsEmbeddedTools');view.append(tools);
  const toolClose=tools.querySelector('[data-close]');toolClose.onclick=()=>choose('data');
  const outdoor=createOutdoorSettingsPanel();view.append(outdoor.panel);

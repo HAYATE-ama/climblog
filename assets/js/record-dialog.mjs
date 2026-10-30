@@ -4,6 +4,7 @@ export function installRecordDialog(){
  panel.setAttribute('role','dialog');panel.setAttribute('aria-modal','true');panel.setAttribute('aria-labelledby','modalTitle');title.tabIndex=-1;
  const background=[...document.getElementById('appRoot').children].filter(el=>el!==modal),cancel=document.getElementById('cancel');
  const head=document.createElement('div');head.className='recordDialogHead';const close=document.createElement('button');close.type='button';close.id='closeRecordDialog';close.textContent='×';close.setAttribute('aria-label','下書きを残して閉じる');close.onclick=()=>cancel.click();title.before(head);head.append(title,close);
+ const actions=panel.querySelector(':scope > .actions'),hint=panel.querySelector(':scope > .hint');actions.classList.add('recordDialogActions');if(hint)actions.before(hint);
  let active=false,trigger=null,scrollY=0,bodyStyle=null,backgroundState=[],locked=false;
  const visible=el=>el instanceof HTMLElement&&el.isConnected&&el.getClientRects().length&&!el.closest('[inert]');
  const controls=()=>[...panel.querySelectorAll('button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),a[href],summary,[tabindex="0"]')].filter(visible);

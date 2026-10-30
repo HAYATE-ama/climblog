@@ -49,3 +49,17 @@ body[data-theme="light"] .trainingMetrics>div{background:#f4f1f8;color:#202b3b}b
 .recordDialogHead{position:sticky;top:-20px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin:-20px -20px 12px;padding:12px 20px;background:var(--panel);border-bottom:1px solid var(--line);z-index:2}
 .recordDialogHead #modalTitle{margin:0;min-width:0}.recordDialogHead button{flex:none;min-width:44px;min-height:44px;border:1px solid var(--line);background:var(--panel2);border-radius:9px;font-size:22px;color:var(--text)}
 #syncConflictNotice{margin:12px 0}#syncConflictNotice p{margin:0 0 10px;font-size:13px}#syncConflictNotice button{min-height:44px;padding:8px 14px;border:1px solid var(--line);border-radius:9px;background:var(--panel2);color:var(--text)}
+
+/* Keep the final action available without adding another screen or control. */
+#modal .recordDialogActions{position:sticky;bottom:-20px;z-index:2;margin:16px -20px -20px;padding:12px 20px max(12px,env(safe-area-inset-bottom));border-top:1px solid var(--line);background:var(--panel);gap:10px}
+#modal .recordDialogActions button{min-height:44px;min-width:88px;white-space:normal}
+#modal .recordDialogActions .primary{flex:1;max-width:320px}
+#modal .dialog :is(input,select,textarea){scroll-margin-top:80px;scroll-margin-bottom:96px}
+.recentCrags{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 12px;min-width:0}
+.recentCrags small{flex-basis:100%;font-size:11px;color:var(--muted)}
+.recentCrags button{min-height:44px;max-width:100%;padding:7px 10px;background:var(--panel2);border:1px solid var(--line);border-radius:9px;color:var(--text);font-size:13px;overflow-wrap:anywhere;text-align:left}
+.recentCrags button[aria-pressed="true"]{border-color:var(--orange)}
+.recordFeedback{position:fixed;bottom:max(16px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);z-index:4;display:flex;align-items:center;gap:10px;width:min(520px,calc(100% - 32px));padding:12px 14px;background:var(--panel);color:var(--text);border:1px solid var(--line);border-left:3px solid var(--orange);border-radius:12px;box-shadow:0 8px 30px #0003}
+.recordFeedback p{margin:0;flex:1;font-size:13px;line-height:1.7;overflow-wrap:anywhere}
+.recordFeedback button{flex:none;min-height:44px;min-width:44px;font-size:20px;border-radius:8px;background:var(--panel2)}
+.recordFeedback button:focus-visible{outline:2px solid var(--orange);outline-offset:2px}

@@ -10,6 +10,8 @@ import {installPwa} from './pwa.js';
 import { prepareBodySettings } from './body-settings.mjs';
 import { installRecordWorkflow } from './record-workflow.js';
 import {installRecordDialog} from './record-dialog.mjs';
+import {installOutdoorInput} from './outdoor-input.mjs';
+import {installRecordFeedback} from './record-feedback.mjs';
 import { getBodyWeightForDate } from './features.mjs';
 import { RecordDrafts } from './record-drafts.mjs';
 
@@ -133,6 +135,6 @@ new MutationObserver(decorateDetails).observe($('#detail'),{childList:true,subtr
 installTrainingStudio({recordApi,states,panels,setControl,fillDraft,renderDrafts});
 installLifeTools();installPixelCompanion();installPwa();installCoachScreen();installWorkoutScreen();installRecordViewer();
 installRecordWorkflow({recordApi,states,panels,setControl,snapshotForm,restoreForm,fillDraft,clearForm,syncGrade,updateOutcome,renderDrafts,updateTrainingWeightInfo});
-installRecordDialog();
+installRecordDialog();installOutdoorInput();installRecordFeedback();
 
 installSettingsDrawer();installOutdoorWeather();
