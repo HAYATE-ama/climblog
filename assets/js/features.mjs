@@ -1,10 +1,18 @@
 import { extraCollections,readCollection } from './account-storage.mjs';
 import { normalizeNarrativeGoals } from './goal-model.mjs';
 import { maxConditionKey, measurementValue } from './strength-insights.mjs';
-export function searchRecords(records, query = "", kind = "all") {
+export function validateSearchPeriod({from = '', to = ''} = {}) {
+  const valid = value => /^\d{4}-\d{2}-\d{2}$/.test(value) && Number.isFinite(Date.parse(value+'T00:00:00Z')) && new Date(value+'T00:00:00Z').toISOString().slice(0,10) === value;
+  if ((from && !valid(from)) || (to && !valid(to))) return '日付を正しく入力してください。';
+  return from && to && from > to ? '終了日は開始日以降にしてください。' : '';
+}
+export function searchRecords(records, query = "", kind = "all", period = {}) {
+  if (validateSearchPeriod(period)) return [];
+  const {from = '', to = ''} = period;
   const term = String(query).trim().toLocaleLowerCase();
   return records.filter(record => {
     if (kind !== "all" && record.kind !== kind) return false;
+    if ((from || to) && (!/^\d{4}-\d{2}-\d{2}$/.test(record.date) || (from && record.date < from) || (to && record.date > to))) return false;
     if (!term) return true;
     const searchable = [record.date, record.place, record.gymName, record.cragName, record.areaName, record.routeName, record.grade, record.exerciseName, record.memo, record.summary].filter(Boolean).join(" ").toLocaleLowerCase();
     return searchable.includes(term);
