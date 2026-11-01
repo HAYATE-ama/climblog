@@ -1,3 +1,4 @@
+import {installMainNavigation} from './main-navigation.mjs';
 import {installHomeActions} from './home-screen.mjs';
 import {installOutdoorWeather} from './outdoor-weather.mjs';
 import {installSettingsDrawer} from './settings-drawer.mjs';
@@ -139,3 +140,5 @@ installRecordWorkflow({recordApi,states,panels,setControl,snapshotForm,restoreFo
 installRecordDialog();installOutdoorInput();installRecordFeedback();
 
 installSettingsDrawer();installOutdoorWeather();installHomeActions();
+
+installMainNavigation();

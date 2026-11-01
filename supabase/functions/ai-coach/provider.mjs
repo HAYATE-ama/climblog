@@ -12,7 +12,7 @@ export function createProvider({key,model=defaultGeminiModel,fetchImpl=fetch}){
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),45000);
   try{
    const response=await fetchImpl('https://generativelanguage.googleapis.com/v1beta/models/'+model+':generateContent',{method:'POST',signal:controller.signal,headers:{'x-goog-api-key':key,'Content-Type':'application/json'},body:JSON.stringify({systemInstruction:{parts:[{text:coachInstructions}]},contents:[{role:'user',parts:[{text:JSON.stringify(input)}]}],generationConfig})});
-   if(!response.ok)throw new Error(response.status===429?'PROVIDER_LIMIT':response.status===401||response.status===403?'PROVIDER_AUTH':response.status===400?'PROVIDER_BAD_REQUEST':response.status===404?'PROVIDER_NOT_FOUND':response.status>=500?'PROVIDER_UNAVAILABLE':'PROVIDER_ERROR');
+   if(!response.ok)throw new Error(response.status===429?'PROVIDER_LIMIT':response.status===401||response.status===403?'PROVIDER_AUTH':response.status===400?'PROVIDER_BAD_REQUEST':response.status===404?'PROVIDER_NOT_FOUND':response.status===500?'PROVIDER_INTERNAL':response.status===504?'PROVIDER_TIMEOUT':response.status>=500?'PROVIDER_UNAVAILABLE':'PROVIDER_ERROR');
    let data;try{data=await response.json();}catch{throw new Error('INVALID_JSON');}if(data.promptFeedback?.blockReason)throw new Error('REFUSAL');
    const candidate=data.candidates?.[0];if(!candidate||candidate.finishReason!=='STOP')throw new Error(candidate?.finishReason==='MAX_TOKENS'?'INCOMPLETE':'REFUSAL');
    const parts=candidate.content?.parts||[];const text=parts.filter(p=>typeof p.text==='string'&&p.thought!==true).map(p=>p.text).join('');

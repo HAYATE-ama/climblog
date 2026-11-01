@@ -65,3 +65,15 @@ body[data-theme="light"] .trainingMetrics>div{background:#f4f1f8;color:#202b3b}b
 .recordFeedback button:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
 
 #appRoot>header,body[data-theme="light"] #appRoot>header{background:var(--bg)}
+
+/* Main navigation: stable geometry and explicit selected/hover/focus states. */
+#appRoot #mainNavigation{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;isolation:isolate}
+#appRoot #mainNavigation .tab{position:relative;display:flex;align-items:center;justify-content:center;min-width:0;min-height:46px;margin:0;padding:10px 4px;border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--muted);box-shadow:none;transform:none;line-height:1.35;white-space:nowrap;font-size:13px;font-weight:600;transition:background-color .15s,color .15s,border-color .15s}
+#appRoot #mainNavigation .tab::after{content:'';position:absolute;bottom:5px;left:calc(50% - 9px);width:18px;height:3px;border-radius:3px;background:transparent}
+#appRoot #mainNavigation .tab.active,#appRoot #mainNavigation .tab.active:hover{background:color-mix(in srgb,var(--panel) 90%,var(--orange) 10%);color:var(--text);border-color:color-mix(in srgb,var(--line) 60%,var(--orange) 40%);box-shadow:none;transform:none}
+#appRoot #mainNavigation .tab.active::after{background:var(--orange)}
+#appRoot #mainNavigation .tab:focus:not(:focus-visible){outline:none}
+#appRoot #mainNavigation .tab:focus-visible{outline:2px solid var(--orange);outline-offset:3px}
+@media(hover:hover){#appRoot #mainNavigation .tab:not(.active):hover{background:var(--panel2);color:var(--text)}}
+@media(max-width:640px){#appRoot #mainNavigation .tab{font-size:12px;min-height:48px}}
+@media(prefers-reduced-motion:reduce){#appRoot #mainNavigation .tab{transition:none}}
