@@ -9,13 +9,15 @@ export function validateSearchPeriod({from = '', to = ''} = {}) {
 export function searchRecords(records, query = "", kind = "all", period = {}) {
   if (validateSearchPeriod(period)) return [];
   const {from = '', to = ''} = period;
-  const term = String(query).trim().toLocaleLowerCase();
+  // Normalize only comparison strings; saved names, grades and notes stay intact.
+  const normalize = value => String(value).normalize('NFKC').toLocaleLowerCase();
+  const terms = normalize(query).trim().split(/\s+/u).filter(Boolean);
   return records.filter(record => {
     if (kind !== "all" && record.kind !== kind) return false;
     if ((from || to) && (!/^\d{4}-\d{2}-\d{2}$/.test(record.date) || (from && record.date < from) || (to && record.date > to))) return false;
-    if (!term) return true;
-    const searchable = [record.date, record.place, record.gymName, record.cragName, record.areaName, record.routeName, record.grade, record.exerciseName, record.memo, record.summary].filter(Boolean).join(" ").toLocaleLowerCase();
-    return searchable.includes(term);
+    if (!terms.length) return true;
+    const searchable = normalize([record.date, record.place, record.gymName, record.cragName, record.areaName, record.routeName, record.grade, record.exerciseName, record.memo, record.summary].filter(Boolean).join(" "));
+    return terms.every(term => searchable.includes(term));
   }).sort((a, b) => String(b.date).localeCompare(String(a.date)));
 }
 

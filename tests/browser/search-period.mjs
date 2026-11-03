@@ -40,6 +40,9 @@ try{
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
    await page.screenshot({path:path.join(resultDir,`period-${viewport.width}-${theme}.png`)});
   }
+  await page.locator('#recordSearch').fill('５級　ﾃｽﾄ');assert.match(await page.locator('#recordSearchCount').innerText(),/32件中 30件/);
+  await page.locator('#recordSearch').fill('ﾃｽﾄ ６級');assert.equal(await page.locator('#recordSearchCount').innerText(),'0件');assert.equal(await page.locator('.searchResult').count(),0);
+  await page.locator('#clearRecordSearch').click();assert.match(await page.locator('#recordSearchCount').innerText(),/35件中 30件/);
   assert.equal(await page.evaluate(()=>JSON.stringify(window.climbLogStateApi.get())),snapshot);assert.deepEqual(errors,[]);report.push({width:viewport.width,period:true,pagination:true,clear:true,readOnly:true,errors});await context.close();
  }
  console.log(JSON.stringify(report,null,2));
