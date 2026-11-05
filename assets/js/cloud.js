@@ -47,7 +47,8 @@ if(!config.supabaseUrl||!config.supabasePublishableKey||config.supabaseUrl.inclu
  const networkFetch=async(input,init={})=>{const controller=new AbortController(),abort=()=>controller.abort(init.signal?.reason);if(init.signal?.aborted)abort();init.signal?.addEventListener('abort',abort,{once:true});const timer=setTimeout(()=>controller.abort(),10000);try{return await fetch(input,{...init,signal:controller.signal});}finally{clearTimeout(timer);init.signal?.removeEventListener('abort',abort);}};
  client=createClient(config.supabaseUrl,config.supabasePublishableKey,{auth:{storage:authStore.storage,storageKey:tokenKey,persistSession:true,autoRefreshToken:false},global:{fetch:networkFetch}});
  window.climbLogCoachTransport={async request(body,{service='ai-coach'}={}){
-  if(!['ai-coach','weather-advisor'].includes(service))throw new Error('INVALID');
+  if(service==='ai-coach')throw new Error('COURSE_API_RETIRED');
+  if(service!=='weather-advisor')throw new Error('INVALID');
   if(!check()||!user)throw new Error('AUTH_REQUIRED');const id=user.id,epoch=loadingEpoch;
   const {data,error}=await client.auth.getSession();if(error||!data.session||!check()||epoch!==loadingEpoch)throw new Error('AUTH_REQUIRED');
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),65000);
