@@ -21,7 +21,6 @@ const read = (key, fallback = []) => {
   try { return JSON.parse(localStorage.getItem(key) || 'null') ?? fallback; }
   catch { return fallback; }
 };
-const write = (key, value) => localStorage.setItem(key, JSON.stringify(value));
 const recordApi = window.climbLogRecordApi;
 const localDate = () => { const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
 const style=document.createElement('style');
@@ -53,7 +52,7 @@ $('#bodyWeightBack').addEventListener('click',()=>{bodyView.hidden=true;$('#sett
 $('#settingsTab').addEventListener('click',()=>{bodyView.hidden=true;});
 $('#bodyWeightDate').value=localDate();
 $('#bodyProfileForm').addEventListener('input',()=>{$('#bodyProfileMessage').textContent='';});
-$('#bodyProfileForm').addEventListener('submit',event=>{event.preventDefault();try{const next=prepareBodySettings({heightCm:$('#bodyHeightCm').value,reachCm:$('#bodyReachCm').value,date:$('#bodyWeightDate').value,kg:$('#bodyWeightKg').value},read('climbLogBodyProfile',{}),read('climbLogBodyWeights'));write('climbLogBodyProfile',next.profile);if(next.weightChanged)write('climbLogBodyWeights',next.history);$('#bodyWeightKg').value='';$('#bodyProfileMessage').textContent=next.weightChanged?'身体情報と体重を保存しました。':'身体情報を保存しました。';renderBodyWeights();}catch(error){$('#bodyProfileMessage').textContent=error.message||'保存できませんでした。';}});
+$('#bodyProfileForm').addEventListener('submit',event=>{event.preventDefault();try{const next=prepareBodySettings({heightCm:$('#bodyHeightCm').value,reachCm:$('#bodyReachCm').value,date:$('#bodyWeightDate').value,kg:$('#bodyWeightKg').value},read('climbLogBodyProfile',{}),read('climbLogBodyWeights'));window.climbLogStateApi.apply({bodyProfile:next.profile,...(next.weightChanged?{bodyWeights:next.history}:{})});$('#bodyWeightKg').value='';$('#bodyProfileMessage').textContent=next.weightChanged?'身体情報と体重を保存しました。':'身体情報を保存しました。';renderBodyWeights();}catch(error){$('#bodyProfileMessage').textContent=error.message||'保存できませんでした。';}});
 function renderBodyWeights(){
   const rows=read('climbLogBodyWeights').filter(row=>/^\d{4}-\d{2}-\d{2}$/.test(row.date)&&Number.isFinite(Number(row.kg))&&Number(row.kg)>0).sort((a,b)=>a.date.localeCompare(b.date));
   $('#bodyWeightRows').replaceChildren(...[...rows].reverse().map(row=>{const item=document.createElement('div'),date=document.createElement('span'),value=document.createElement('strong');item.className='bodyWeightRow';date.textContent=row.date;value.textContent=`${row.kg} kg`;item.append(date,value);return item;}));
@@ -66,7 +65,7 @@ const gymFields=$('#gymFields'),sendsGroup=$('#gymSends').closest('div');
 function updateOutcome(){sendsGroup.hidden=$('#gymOutcome').value==='failed';}
 $('#gymOutcome').addEventListener('change',updateOutcome);
 const weightInfo=document.createElement('p');weightInfo.id='bodyweightInfo';weightInfo.className='bodyWeightHelp';$('#trainingRoutineFields').insertAdjacentElement('afterend',weightInfo);
-function updateTrainingWeightInfo(){const existing=recordApi.getEditingRecord(),date=window.climbLogGetSelectedDate(),kg=existing?.bodyweightKg??getBodyWeightForDate(read('climbLogBodyWeights'),date);$('#maxBodyweight').value=kg??'';$('#maxBodyweight').readOnly=true;weightInfo.textContent=kg?`${existing?'記録時':'当日'}の体重：${kg} kg`:'設定の身体情報に体重を登録すると、自動で記録に反映されます。';$('#maxBodyweight').dispatchEvent(new Event('input',{bubbles:true}));}
+function updateTrainingWeightInfo(){const existing=recordApi.getEditingRecord(),date=window.climbLogGetSelectedDate(),kg=existing?(existing.bodyweightKg??null):getBodyWeightForDate(read('climbLogBodyWeights'),date);$('#maxBodyweight').value=kg??'';$('#maxBodyweight').readOnly=true;weightInfo.textContent=kg?`${existing?'記録時':'当日'}の体重：${kg} kg`:existing?'記録時の体重：未記録。現在の身体設定では上書きしません。':'設定の身体情報に体重を登録すると、自動で記録に反映されます。';$('#maxBodyweight').dispatchEvent(new Event('input',{bubbles:true}));}
 
 const states={gym:{drafts:new RecordDrafts(),editingId:null,resume:null},training:{drafts:new RecordDrafts(),editingId:null,resume:null}};
 function batchPanel(parent,kind,label){const panel=document.createElement('section');panel.className='batchEntry';panel.id=`${kind}BatchEntries`;panel.innerHTML=`<h3>追加済みの${label}</h3><div class="batchButtons"><button type="button" data-batch-add>＋ ${label}を追加</button><button type="button" data-batch-cancel hidden>編集を取り消す</button></div><p class="bodyWeightHelp" data-batch-message>追加した項目は、保存前でも編集できます。</p><ul aria-live="polite"></ul>`;parent.append(panel);return panel;}

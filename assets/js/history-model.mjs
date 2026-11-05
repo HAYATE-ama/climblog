@@ -1,10 +1,48 @@
+import {fixedExerciseGrip} from './training-conditions.mjs';
+import {resolveExercise,withExerciseIdentity} from './exercise-registry.mjs';
 import {clone,stableJson,newId} from './data-utils.mjs';
 const comparable=row=>{const {updatedAt,createdAt,...rest}=row;return rest;};
 export function historyEntry(action,before,after,now=new Date().toISOString(),id=newId()){return {id,recordId:(after||before).id,action,before:clone(before),after:clone(after),changedAt:now};}
+const routine=row=>row.kind==='training'&&(row.trainingMode||'routine')==='routine';
+function normalizeRoutineEdit(before,values){
+  if(!routine(before)||!routine(values))return values;
+  const after=withExerciseIdentity(values),previous=resolveExercise(before.exerciseName),current=resolveExercise(after.exerciseName);
+  const sameExercise=previous&&current&&previous.definition.exerciseId===current.definition.exerciseId&&previous.side===current.side;
+  const exerciseChanged=before.exerciseName!==after.exerciseName&&!sameExercise;
+  if(exerciseChanged){for(const key of ['fingerConditions','gripType','edgeDepthMm'])delete after[key];const fixed=fixedExerciseGrip(after.exerciseName);if(fixed)after.gripType=fixed;}
+  const contentKeys=['sets','reps','holdSeconds','durationMinutes','loadKg','loadRecorded','loadMethod','setDetails'];
+  if(exerciseChanged||contentKeys.some(key=>stableJson(before[key])!==stableJson(after[key])))delete after.sessionSetResults;
+  return after;
+}
+function normalizeTrainingEdit(before,values,entry){
+  if(before.kind!=='training'||values.kind!=='training'||(before.trainingMode||'routine')===(values.trainingMode||'routine'))return normalizeRoutineEdit(before,values);
+  const after=withExerciseIdentity(values);
+  for(const key of ['sessionSetResults','workoutSessionId','workoutTitle','workoutStartedAt','workoutFinishedAt','batchSessionId','feedbackScope','aiProposalId','aiPlanDate','aiGeneratedAt','aiPlanModified'])delete after[key];
+  after.recordSource='manual';
+  if(after.trainingMode==='maxTest')for(const key of ['setDetails','loadMethod','loadRecorded','fingerConditions'])delete after[key];
+  else{
+    for(const key of ['maxType','addedWeightKg','totalLoadKg','liftHand','liftMeasurement','holdSeconds','pairGroupId','_pairedMeasurements'])delete after[key];
+    for(const key of ['gripType','edgeDepthMm','fingerConditions'])if(!Object.hasOwn(entry,key))delete after[key];
+  }
+  return after;
+}
+const kindSpecificFields={
+  gym:['gymName','gymOutcome','gradeLabelSnapshot','colorSnapshot'],
+  outdoor:['cragName','areaName','routeName','discipline','gradeSystem','outdoorGrade','result','attemptsRange','weather','rockCondition','partners','projectId'],
+  training:['trainingMode','trainingPlace','exerciseName','catalogExerciseId','exerciseSide','exerciseRegistryVersion','sets','reps','durationMinutes','loadKg','loadRecorded','rpe','loadMethod','setDetails','sessionSetResults','fingerConditions','gripType','edgeDepthMm','holdSeconds','maxType','liftHand','liftMeasurement','addedWeightKg','totalLoadKg','pairGroupId','_pairedMeasurements','workoutSessionId','workoutTitle','workoutStartedAt','workoutFinishedAt','feedbackScope','aiProposalId','aiPlanDate','aiGeneratedAt','aiPlanModified']
+};
+function normalizeRecordEdit(before,values,entry){
+  if(before.kind===values.kind)return normalizeTrainingEdit(before,values,entry);
+  const after={...values};
+  for(const key of [...(kindSpecificFields[before.kind]||[]),'summary','batchSessionId'])if(!Object.hasOwn(entry,key))delete after[key];
+  if(Object.hasOwn(before,'createdAt'))after.createdAt=before.createdAt;
+  after.recordSource=entry.recordSource||'manual';
+  return after.kind==='training'?withExerciseIdentity(after):after;
+}
 export function prepareRecordCommit(records,entries,{editingId=null,date,history=[],now=new Date().toISOString(),createId=newId}={}){
   if(!entries.length)throw new Error('記録する項目がありません。');
   const next=clone(records),changes=clone(history),ids=[];
-  if(editingId){if(entries.length!==1)throw new Error('編集中の記録は1件ずつ更新してください。');const index=next.findIndex(row=>row.id===editingId);if(index<0)throw new Error('編集中の記録が見つかりません。');const before=next[index],after={...before,...clone(entries[0]),id:before.id,date:before.date,updatedAt:now};if(stableJson(comparable(before))!==stableJson(comparable(after)))changes.push(historyEntry('edit',before,after,now,createId()));next[index]=after;ids.push(after.id);}
+  if(editingId){if(entries.length!==1)throw new Error('編集中の記録は1件ずつ更新してください。');const index=next.findIndex(row=>row.id===editingId);if(index<0)throw new Error('編集中の記録が見つかりません。');const before=next[index],after=normalizeRecordEdit(before,{...before,...clone(entries[0]),id:before.id,date:before.date,updatedAt:now},entries[0]);if(stableJson(comparable(before))!==stableJson(comparable(after)))changes.push(historyEntry('edit',before,after,now,createId()));next[index]=after;ids.push(after.id);}
   else for(const values of entries){const row={...clone(values),recordSource:['timer','copy'].includes(values.recordSource)?values.recordSource:'manual',id:createId(),date,createdAt:now,updatedAt:now};next.push(row);ids.push(row.id);}
   return {records:next,recordHistory:changes,recordIds:ids,isNew:!editingId};
 }

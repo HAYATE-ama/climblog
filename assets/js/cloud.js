@@ -1,7 +1,8 @@
+import {stableJson} from './data-utils.mjs';
 import {saveCloudSnapshot} from './cloud-sync.mjs';
 import {installAuthLoading} from './auth-loading.mjs';
 import {readVerifiedAccount,preloadAppModules} from './auth-startup.mjs';
-import {accountKeys,loadAccountPayload} from './account-storage.mjs';
+import {accountKeys,loadAccountPayload,registerAccountPatchWriter,commitStorageRows} from './account-storage.mjs';
 import {createClient} from 'https://esm.sh/@supabase/supabase-js@2';
 import {buildCloudPayload,migrateLegacyRecords} from './features.mjs';
 import {createAuthStorage,policyReason,sameRemoteVersion} from './auth-policy.mjs';
@@ -18,7 +19,7 @@ if(!config.supabaseUrl||!config.supabasePublishableKey||config.supabaseUrl.inclu
  const origSet=Storage.prototype.setItem,origRemove=Storage.prototype.removeItem;
  const project=new URL(config.supabaseUrl).hostname.split('.')[0],prefix='climbLogAuth:'+project,tokenKey=prefix+':token',signalKey=prefix+':event',ownerKey=prefix+':owner';
  const authStore=createAuthStorage({local:localStorage,tab:sessionStorage,prefix});
- let client,user=null,ready=false,initializing=false,signup=false,submitting=false,locking=false,loadingEpoch=0,syncTimer=null,writes=Promise.resolve(),localPayload=null,remoteVersion=null,activityWriteAt=0,previousTraining=false,appImportStarted=false,syncConflict=false;
+ let client,user=null,ready=false,initializing=false,signup=false,submitting=false,locking=false,loadingEpoch=0,syncTimer=null,writes=Promise.resolve(),remoteVersion=null,activityWriteAt=0,previousTraining=false,appImportStarted=false,syncConflict=false,localFingerprint=null;
  const pendingKey=id=>'climbLogPendingState:'+id;
  const parse=(key,fallback=null)=>{try{return JSON.parse(localStorage.getItem(key)||'null')??fallback;}catch{return fallback;}};
  const writeRaw=(key,value)=>origSet.call(localStorage,key,JSON.stringify(value));
@@ -29,7 +30,6 @@ if(!config.supabaseUrl||!config.supabasePublishableKey||config.supabaseUrl.inclu
   $('modal')?.classList.remove('open');$('authPending').hidden=true;appRoot.hidden=true;appRoot.inert=true;authScreen.hidden=false;authScreen.style.display='grid';$('authPassword').value='';window.scrollTo({top:0,left:0,behavior:'instant'});
  }
  function broadcast(type){try{writeRaw(signalKey,{type,userId:user?.id||authStore.getPolicy()?.userId||null,nonce:crypto.randomUUID()});}catch{}}
- function stash(){if(!user||!localPayload)return null;const old=readPending(user.id);const value={userId:user.id,payload:localPayload,revision:crypto.randomUUID(),baseUpdatedAt:old?.baseUpdatedAt??remoteVersion,savedAt:new Date().toISOString()};writeRaw(pendingKey(user.id),value);return value;}
  function clearCache(){for(const key of Object.values(accountKeys))origRemove.call(localStorage,key);origRemove.call(localStorage,'climbLogProjects');}
  const reasons={idle:'30分間操作がなかったため、再ログインしてください。下書き・途中記録は保持しています。',absolute:'前回のログインから7日経過しました。再ログインしてください。',signedOut:'ログインが解除されました。再ログインしてください。',accountChanged:'別の画面でアカウントが変更されました。再ログインしてください。',missing:'ログイン方式を更新しました。パスワードでログインしてください。',locked:'再度パスワードを入力してログインしてください。',manual:'ログアウトしました。',authError:'認証を確認できません。接続を確認して再ログインしてください。'};
  async function lock(reason,{revoke=true,notify=true}={}){
@@ -92,16 +92,28 @@ if(!config.supabaseUrl||!config.supabasePublishableKey||config.supabaseUrl.inclu
   };
   writes=writes.then(send,send);return writes;
  }
+ function commitAccountRows(rows){
+  if(!rows.length)return;
+  if(!initializing&&!check())throw new Error('再ログインしてから保存してください。');
+  if(!initializing&&localFingerprint!==null&&stableJson(buildCloudPayload(localStorage))!==localFingerprint){
+   syncStatus.textContent='別のタブで更新あり（再読み込みが必要）';
+   throw new Error('別のタブで記録や設定が更新されました。入力内容はこの画面に残しています。下書きを保存して閉じ、再読み込みして最新の記録を確認してください。');
+  }
+  const changes=new Map(rows.map(row=>[row.key,row.value]));
+  const payload=buildCloudPayload({getItem:key=>changes.has(key)?changes.get(key):localStorage.getItem(key)});
+  const old=readPending(user.id),pending={userId:user.id,payload,revision:crypto.randomUUID(),baseUpdatedAt:old?.baseUpdatedAt??remoteVersion,savedAt:new Date().toISOString()};
+  try{commitStorageRows(localStorage,[{key:pendingKey(user.id),value:JSON.stringify(pending)},...rows],{setItem:origSet,removeItem:origRemove});}
+  catch{syncStatus.textContent='未保存（端末の空き容量を確認）';throw new Error('端末の空き容量が足りないため保存できませんでした。入力内容を残したまま、空き容量を確認してください。');}
+  localFingerprint=stableJson(payload);syncStatus.textContent='未同期（この端末に保留）';clearTimeout(syncTimer);syncTimer=setTimeout(()=>void sync(),500);
+ }
+ registerAccountPatchWriter(localStorage,commitAccountRows);
  Storage.prototype.setItem=function(key,value){
   if(this!==localStorage||!Object.values(accountKeys).includes(key))return origSet.call(this,key,value);
-  if(!initializing&&!check())throw new Error('再ログインしてから保存してください。');
-  origSet.call(this,key,value);localPayload=buildCloudPayload(localStorage);
-  try{stash();}catch{syncStatus.textContent='未同期（端末の空き容量を確認）';}
-  clearTimeout(syncTimer);syncTimer=setTimeout(()=>void sync(),500);
+  commitAccountRows([{key,value:String(value)}]);
  };
  async function initializeApp(payload,epoch,expectedPendingRevision=readPending(user.id)?.revision??null){
   const reason=policyReason(authStore.getPolicy());if(reason){await lock(reason);return;}
-  loadAccountPayload(localStorage,payload,origSet,origRemove);localPayload=buildCloudPayload(localStorage);initializing=true;
+  loadAccountPayload(localStorage,payload,origSet,origRemove);localFingerprint=stableJson(buildCloudPayload(localStorage));initializing=true;
   appImportStarted=true;
   try{await bounded(import('./app.js'));await bounded(import('./enhancements.js'));}finally{initializing=false;}
   if(epoch!==loadingEpoch||locking)return;if((readPending(user.id)?.revision??null)!==expectedPendingRevision)throw new Error('未同期の記録が別の画面で更新されました。再読み込みして確認し直してください。');const finalReason=policyReason(authStore.getPolicy());if(finalReason){await lock(finalReason);return;}ready=true;appRoot.inert=false;appRoot.hidden=false;authScreen.hidden=true;authScreen.style.display='none';$('authPassword').value='';client.auth.startAutoRefresh?.();activityWriteAt=Date.now();syncStatus.textContent=readPending(user.id)?'未同期（復元済み）':'同期済み';

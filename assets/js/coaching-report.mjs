@@ -8,15 +8,16 @@ export function coachingReport(state,{from,to,goal='',notes=false,body=false,loc
  const source=Array.isArray(state?.records)?state.records:[],selected=source.filter(r=>r&&date(r.date)&&(!from||r.date>=from)&&r.date<=to&&['gym','outdoor','training'].includes(r.kind)).sort((a,b)=>a.date.localeCompare(b.date));
  const records=selected.map(r=>{
   const row={date:r.date,kind:r.kind};
-  for(const key of ['exerciseId','exerciseName','trainingMode','maxType','gripType','liftMeasurement','liftHand','loadMethod','grade','result'])if(typeof r[key]==='string'&&r[key])row[key]=clean(r[key]);
-  for(const key of ['sends','tries','sets','reps','holdSeconds','durationMinutes','rpe','edgeDepthMm','addedWeightKg']){const n=numeric(r[key]);if(n!==null)row[key]=n;}
-  if(r.loadKg!=null){row.loadRecorded=isRecordedLoad(r,r.loadMethod);row.loadKg=row.loadRecorded?numeric(r.loadKg):null;}
-  if(Array.isArray(r.setDetails))row.setDetails=r.setDetails.map(s=>{const out={};for(const key of ['reps','holdSeconds']){const n=numeric(s[key]);if(n!==null)out[key]=n;}out.loadRecorded=isRecordedLoad(s,r.loadMethod);out.loadKg=out.loadRecorded?numeric(s.loadKg):null;return out;});
-  if(Array.isArray(r.sessionSetResults))row.sessionSetResults=r.sessionSetResults.map(s=>({status:clean(s.status,30),mode:clean(s.mode,20),plannedTarget:numeric(s.plannedTarget),actual:numeric(s.actual),loadKg:numeric(s.loadKg)}));
-  if(r.fingerConditions&&typeof r.fingerConditions==='object'){row.fingerConditions={gripType:clean(r.fingerConditions.gripType,40),edgeDepthMm:numeric(r.fingerConditions.edgeDepthMm)};}
+  const training=r.kind==='training',textKeys=['grade',...(training?['exerciseId','catalogExerciseId','exerciseSide','exerciseName','trainingMode','maxType','gripType','liftMeasurement','liftHand','loadMethod']:r.kind==='outdoor'?['result','discipline']:['gymOutcome','result'])];
+  for(const key of textKeys)if(typeof r[key]==='string'&&r[key])row[key]=clean(r[key]);
+  for(const key of training?['sets','reps','holdSeconds','durationMinutes','rpe','edgeDepthMm','addedWeightKg','exerciseRegistryVersion']:['sends','tries']){const n=numeric(r[key]);if(n!==null)row[key]=n;}
+  if(training&&r.loadKg!=null){row.loadRecorded=isRecordedLoad(r,r.loadMethod);row.loadKg=row.loadRecorded?numeric(r.loadKg):null;}
+  if(training&&Array.isArray(r.setDetails))row.setDetails=r.setDetails.map(s=>{const out={};for(const key of ['reps','holdSeconds']){const n=numeric(s[key]);if(n!==null)out[key]=n;}out.loadRecorded=isRecordedLoad(s,r.loadMethod);out.loadKg=out.loadRecorded?numeric(s.loadKg):null;return out;});
+  if(training&&Array.isArray(r.sessionSetResults))row.sessionSetResults=r.sessionSetResults.map(s=>({status:clean(s.status,30),mode:clean(s.mode,20),plannedTarget:numeric(s.plannedTarget),actual:numeric(s.actual),loadRecorded:isRecordedLoad(s,r.loadMethod),loadKg:isRecordedLoad(s,r.loadMethod)?numeric(s.loadKg):null}));
+  if(training&&r.fingerConditions&&typeof r.fingerConditions==='object'){row.fingerConditions={gripType:clean(r.fingerConditions.gripType,40),edgeDepthMm:numeric(r.fingerConditions.edgeDepthMm)};}
   if(locations)for(const key of ['place','gymName','cragName','routeName'])if(typeof r[key]==='string')row[key]=clean(r[key]);
   if(notes&&r.memo)row.memo=clean(r.memo,2000);
-  if(body)for(const key of ['bodyweightKg','totalLoadKg']){const n=numeric(r[key]);if(n!==null)row[key]=n;}
+  if(body)for(const key of ['bodyweightKg',...(training?['totalLoadKg']:[])]){const n=numeric(r[key]);if(n!==null)row[key]=n;}
   return row;
  });
  const counts=Object.fromEntries(['gym','outdoor','training'].map(kind=>[kind,records.filter(r=>r.kind===kind).length]));

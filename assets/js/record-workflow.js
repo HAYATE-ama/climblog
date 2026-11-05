@@ -1,3 +1,4 @@
+import {liftMeasurementKind} from './lift-measurement.mjs';
 import { InputDraftStore } from './input-draft-store.mjs';
 import { findPreviousRecords, copyRecordForDate } from './workflow-features.mjs';
 
@@ -34,7 +35,7 @@ export function installRecordWorkflow({recordApi,states,panels,setControl,snapsh
   }
   function restoreRaw(form){
     const values=Object.fromEntries(Object.entries(form).filter(([id])=>allowed.has(id)));
-    for(const id of ['kind','trainingMode','gymName','outdoorDiscipline','gradeSystem'])if(id in values){setControl(id,values[id]);$('#'+id).dispatchEvent(new Event('change',{bubbles:true}));}
+    for(const id of ['kind','trainingMode','maxType','liftMeasurement','gymName','outdoorDiscipline','gradeSystem'])if(id in values){setControl(id,values[id]);$('#'+id).dispatchEvent(new Event('change',{bubbles:true}));}
     for(const [id,value] of Object.entries(values))if(!['kind','trainingMode','gymName','outdoorDiscipline','gradeSystem'].includes(id))setControl(id,value);
     syncGrade();updateOutcome();updateTrainingWeightInfo();window.dispatchEvent(new Event("climblog:formRestored"));
   }
@@ -76,7 +77,7 @@ window.addEventListener('climblog:recordSaved',event=>{try{store.remove(event.de
     const history=JSON.parse(localStorage.getItem('climbLogBodyWeights')||'[]'),date=window.climbLogGetSelectedDate();
     if(kind==='training'&&$('#trainingMode').value==='maxTest'){
       const value=copyRecordForDate(rows[0],date,history);
-      for(const [id,data] of Object.entries({maxType:value.maxType,gripType:value.gripType||'open',edgeDepthMm:value.edgeDepthMm||'',holdSeconds:value.holdSeconds||'',maxAddedWeight:value.addedWeightKg||0,liftHand:value.liftHand||'right',trainingMemo:value.memo||''}))setControl(id,data);
+      for(const [id,data] of Object.entries({maxType:value.maxType,gripType:value.gripType||'open',edgeDepthMm:value.edgeDepthMm||'',holdSeconds:value.holdSeconds||'',liftMeasurement:liftMeasurementKind(value),maxAddedWeight:value.addedWeightKg||0,liftHand:value.liftHand||'right',trainingMemo:value.memo||''}))setControl(id,data);
       $('#maxType').dispatchEvent(new Event('change',{bubbles:true}));updateTrainingWeightInfo();
     }else{
       const meaningful=kind==='gym'?Number($('#gymSends').value)>0||Number($('#gymTries').value)>0||Boolean($('#gymMemo').value.trim()):['trainingSets','trainingReps','trainingDuration','trainingLoad','trainingRpe'].some(id=>Number($('#'+id).value)>0)||Boolean($('#trainingMemo').value.trim());
