@@ -8,7 +8,7 @@ export function coachingReport(state,{from,to,goal='',notes=false,body=false,loc
  const source=Array.isArray(state?.records)?state.records:[],selected=source.filter(r=>r&&date(r.date)&&(!from||r.date>=from)&&r.date<=to&&['gym','outdoor','training'].includes(r.kind)).sort((a,b)=>a.date.localeCompare(b.date));
  const records=selected.map(r=>{
   const row={date:r.date,kind:r.kind};
-  for(const key of ['exerciseId','exerciseName','trainingMode','maxType','gripType','liftHand','loadMethod','grade','result'])if(typeof r[key]==='string'&&r[key])row[key]=clean(r[key]);
+  for(const key of ['exerciseId','exerciseName','trainingMode','maxType','gripType','liftMeasurement','liftHand','loadMethod','grade','result'])if(typeof r[key]==='string'&&r[key])row[key]=clean(r[key]);
   for(const key of ['sends','tries','sets','reps','holdSeconds','durationMinutes','rpe','edgeDepthMm','addedWeightKg']){const n=numeric(r[key]);if(n!==null)row[key]=n;}
   if(r.loadKg!=null){row.loadRecorded=isRecordedLoad(r,r.loadMethod);row.loadKg=row.loadRecorded?numeric(r.loadKg):null;}
   if(Array.isArray(r.setDetails))row.setDetails=r.setDetails.map(s=>{const out={};for(const key of ['reps','holdSeconds']){const n=numeric(s[key]);if(n!==null)out[key]=n;}out.loadRecorded=isRecordedLoad(s,r.loadMethod);out.loadKg=out.loadRecorded?numeric(s.loadKg):null;return out;});

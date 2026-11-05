@@ -41,7 +41,7 @@ export function buildCloudPayload(storage) {
   return { ...Object.fromEntries(extraCollections.map(name=>[name,readCollection(storage,name)])), records: migrateLegacyRecords(JSON.parse(storage.getItem("climbLogRecords") || "[]")), gyms: JSON.parse(storage.getItem("climbLogGyms") || "null"), goals: normalizeNarrativeGoals(JSON.parse(storage.getItem("climbLogGoals") || "{}")), preferences: JSON.parse(storage.getItem("climbLogPreferences") || "{}"), bodyWeights: JSON.parse(storage.getItem("climbLogBodyWeights") || "[]"), bodyProfile: JSON.parse(storage.getItem("climbLogBodyProfile") || "{}") };
 }
 
-export function validateMaxTest({ maxType, addedWeightKg, bodyweightKg, edgeDepthMm, holdSeconds }) {
+export function validateMaxTest({ maxType, addedWeightKg, bodyweightKg, edgeDepthMm, holdSeconds, liftMeasurement }) {
   if (!['hangboard', 'singleHandLift', 'weightedPullup'].includes(maxType)) return "測定種目を選択してください。";
   const missing=value=>value==null||String(value).trim()==='';
   const inRange=(value,min,max)=>!missing(value)&&Number.isFinite(Number(value))&&Number(value)>=min&&Number(value)<=max;
@@ -49,6 +49,10 @@ export function validateMaxTest({ maxType, addedWeightKg, bodyweightKg, edgeDept
   if (!missing(bodyweightKg)&&!inRange(bodyweightKg,0,300)) return "体重は0〜300kgで入力してください。";
   if (["hangboard", "singleHandLift"].includes(maxType)&&!inRange(edgeDepthMm,1,100)) return "ホールド・持ち手の厚さは1〜100mmで入力してください。";
   if (maxType === "hangboard"&&!inRange(holdSeconds,1,300)) return "保持時間は1〜300秒で入力してください。";
+  if(maxType==='singleHandLift'){
+    if(liftMeasurement!=null&&!['instant','hold','unspecified'].includes(liftMeasurement))return '測定方法を選択してください。';
+    if(liftMeasurement==='hold'&&(!inRange(holdSeconds,1,300)||!Number.isInteger(Number(holdSeconds))))return '保持時間は1〜300秒の整数で入力してください。';
+  }
   return "";
 }
 export function calculateTotalLoad(addedWeightKg, bodyweightKg) {

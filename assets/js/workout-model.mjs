@@ -63,7 +63,7 @@ export function restoreWorkoutDraft(raw,now=Date.now()){
  for(const r of results){const index=phases.findIndex(p=>p.kind==='work'&&p.exerciseId===r.exerciseId&&p.setIndex===r.setIndex);if(index>=phaseIndex)throw new Error('未実施のセットを含んでいます。');}
  const active=raw.status==='running';if(active&&(!Number.isFinite(raw.phaseStartedAt)||raw.remainingSeconds!=null&&!Number.isFinite(raw.endsAt)))throw new Error('タイマーの時刻が不正です。');
  const remainingSeconds=raw.remainingSeconds==null?null:number(active?Math.max(0,(Number(raw.endsAt)-now)/1000):raw.remainingSeconds,0,86400,'残り時間');
- return {schemaVersion:1,id:raw.id,date:raw.date,plan,phaseIndex,results,feedback:normalizeWorkoutFeedback(raw.feedback),status:raw.status==='review'?'review':'paused',startedAt:raw.startedAt,finishedAt:raw.finishedAt||null,remainingSeconds,endsAt:null,phaseStartedAt:null,phaseElapsedSeconds:Math.min(86400,number(raw.phaseElapsedSeconds??0,0,86400,'経過時間')+(active?Math.max(0,(now-Number(raw.phaseStartedAt))/1000):0)),pauseReason:'reload'};
+ return {schemaVersion:1,...(raw.backgroundCatchup===true?{backgroundCatchup:true}:{}),id:raw.id,date:raw.date,plan,phaseIndex,results,feedback:normalizeWorkoutFeedback(raw.feedback),status:raw.status==='review'?'review':'paused',startedAt:raw.startedAt,finishedAt:raw.finishedAt||null,remainingSeconds,endsAt:null,phaseStartedAt:null,phaseElapsedSeconds:Math.min(86400,number(raw.phaseElapsedSeconds??0,0,86400,'経過時間')+(active?Math.max(0,(now-Number(raw.phaseStartedAt))/1000):0)),pauseReason:'reload'};
 }
 export function prepareWorkoutSave(state,session,now=Date.now()){
  const s=restoreWorkoutDraft(session,now);if(s.status!=='review')throw new Error('実施結果を確認してから保存してください。');

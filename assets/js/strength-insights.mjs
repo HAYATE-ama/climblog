@@ -1,6 +1,7 @@
+import {liftMeasurementKey} from './lift-measurement.mjs';
 export function maxConditionKey(record,includeHand=true){
   const finger=record.maxType!=='weightedPullup';
-  return [record.maxType,finger?(record.gripType||'unknown'):'',finger?(record.edgeDepthMm||'unknown'):'',record.maxType==='hangboard'?(record.holdSeconds||'unknown'):'',includeHand&&record.maxType==='singleHandLift'?(record.liftHand||'unknown'):''].join('|');
+  return [record.maxType,finger?(record.gripType||'unknown'):'',finger?(record.edgeDepthMm||'unknown'):'',record.maxType==='hangboard'?(record.holdSeconds||'unknown'):record.maxType==='singleHandLift'?liftMeasurementKey(record):'',includeHand&&record.maxType==='singleHandLift'?(record.liftHand||'unknown'):''].join('|');
 }
 export function measurementValue(record){
   const added=Number(record.addedWeightKg),body=Number(record.bodyweightKg),total=Number(record.totalLoadKg);
