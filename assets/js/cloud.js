@@ -97,7 +97,7 @@ if(!config.supabaseUrl||!config.supabasePublishableKey||config.supabaseUrl.inclu
   if(!initializing&&!check())throw new Error('再ログインしてから保存してください。');
   if(!initializing&&localFingerprint!==null&&stableJson(buildCloudPayload(localStorage))!==localFingerprint){
    syncStatus.textContent='別のタブで更新あり（再読み込みが必要）';
-   throw new Error('別のタブで記録や設定が更新されました。入力内容はこの画面に残しています。下書きを保存して閉じ、再読み込みして最新の記録を確認してください。');
+   throw new Error('別のタブで記録や設定が更新されました。保存していません。入力内容を控えてから再読み込みしてください。記録フォームは「閉じる」で下書きを残せます。');
   }
   const changes=new Map(rows.map(row=>[row.key,row.value]));
   const payload=buildCloudPayload({getItem:key=>changes.has(key)?changes.get(key):localStorage.getItem(key)});
