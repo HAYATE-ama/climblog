@@ -8,7 +8,7 @@ test('search keeps unique record identity on the same day and shows year when ne
 test('markup escapes untrusted record fields, identifiers and invalid swatch values',()=>{const r={id:'a" onclick="bad',kind:'gym',gymName:'<img src=x>',grade:'<script>bad</script>',colorSnapshot:'red" onclick="bad',date:'2026-10-18'};for(const html of [searchRecordMarkup(r),recordLineMarkup(r),outdoorStatMarkup(r)]){assert.doesNotMatch(html,/<img|<script| onclick="bad/);assert.match(html,/&lt;/);}assert.match(recordLineMarkup(r),/background:#ff6f00/);});
 test('compact rendering does not mutate records or expose memos in lists',()=>{const r={id:'a',kind:'outdoor',date:'2026-10-18',routeName:'とても長い課題名',memo:'private note'},snapshot=JSON.stringify(r);const html=outdoorStatMarkup(r);assert.doesNotMatch(html,/private note/);assert.match(recordAccessibleLabel(r),/とても長い課題名/);assert.equal(JSON.stringify(r),snapshot);});
 
-test('variable loads are shown as a range instead of suggesting every set used the maximum',()=>{assert.equal(recordSummary({kind:'training',setDetails:[{reps:6,loadKg:10},{reps:4,loadKg:12}],loadKg:12}).secondary,'負荷 10〜12kg');assert.equal(recordSummary({kind:'outdoor',result:'attempt',attemptsRange:'6-10'}).secondary,'トライ · 6〜10回');});
+test('variable loads are shown as a range instead of suggesting every set used the maximum',()=>{assert.equal(recordSummary({kind:'training',setDetails:[{reps:6,loadKg:10},{reps:4,loadKg:12}],loadKg:12}).secondary,'負荷 10〜12kg');assert.equal(recordSummary({kind:'outdoor',result:'attempt',attemptsRange:'6-10'}).secondary,'敗退 · 6〜10回');});
 
 
 test('compact weights exclude unconfirmed values without presenting unknown samples as zero loads',()=>{
