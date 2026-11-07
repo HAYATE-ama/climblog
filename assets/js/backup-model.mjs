@@ -1,3 +1,4 @@
+import {normalizeCourse,normalizeCourseStep,normalizeBefore,normalizeAfter,normalizeObservation} from './day-course-data.mjs';
 import {validateOutdoorSettings} from './outdoor-settings-model.mjs';
 import {normalizeWorkoutPlan} from './workout-model.mjs';
 import {clone} from './data-utils.mjs';
@@ -6,10 +7,13 @@ import {accountKeys} from './account-storage.mjs';
 const recordNumericFields=['sets','reps','durationMinutes','loadKg','addedWeightKg','totalLoadKg','sends','tries','bodyweightKg','rpe','edgeDepthMm','holdSeconds'];
 function validateNumericTypes(row,keys,label){for(const key of keys)if(row[key]!=null&&(!['number','string'].includes(typeof row[key])||!Number.isFinite(Number(row[key]))))throw new Error(label+'の数値欄に不正な型があります。数値または数値の文字列を確認してください。');}
 function validateTrainingArrays(row){
+ if(row.course){normalizeCourse(row.course);normalizeBefore(row.courseBefore);normalizeAfter(row.courseAfter);if(row.coursePrescription){normalizeCourseStep(row.coursePrescription.step);normalizeWorkoutPlan({title:'復元検証',course:row.course,exercises:[row.coursePrescription]});}}
+
  for(const [key,label]of [['setDetails','セット詳細'],['sessionSetResults','タイマーの実施結果']]){
   const rows=row[key];if(rows==null)continue;
   if(!Array.isArray(rows))throw new Error(label+'は配列の形式で保存してください。');
   if(rows.some(item=>!item||typeof item!=='object'||Array.isArray(item)))throw new Error(label+'に不正な項目があります。各セットの内容を確認してください。');
+  for(const item of rows){if(item.observation)normalizeObservation(item.observation);if(item.confirmed!=null&&typeof item.confirmed!=='boolean')throw new Error('実績の確定状態が不正です。');}
   for(const item of rows)validateNumericTypes(item,key==='setDetails'?['reps','holdSeconds','loadKg']:['setIndex','plannedTarget','actual','loadKg','actualWorkSeconds','actualRestSeconds'],label);
   if(key==='setDetails'&&rows.length)normalizeSetDetails(rows);
  }
@@ -29,7 +33,7 @@ export function validateBackup(value){
  for(const row of value.customExercises||[])if(typeof row.name!=='string'||!row.name.trim()||row.name.length>100||!['time','reps'].includes(row.mode))throw new Error('自分の種目の形式が不正です。');
  for(const row of value.trainingPresets||[])if(typeof row.name!=='string'||!row.fields||typeof row.fields!=='object'||!['hangboard','singleHandLift','weightedPullup'].includes(row.fields.maxType))throw new Error('測定条件の形式が不正です。');
  for(const row of value.trainingMenus||[]){if(row.workoutPlan)normalizeWorkoutPlan(row.workoutPlan);if(typeof row.name!=='string'||!Array.isArray(row.entries)||!row.entries.length)throw new Error('メニューの形式が不正です。');for(const entry of row.entries){if(!entry||typeof entry!=='object'||Array.isArray(entry)||entry.kind!=='training'||entry.trainingMode!=='routine'||typeof entry.exerciseName!=='string')throw new Error('メニューの種目が不正です。');validateNumericTypes(entry,recordNumericFields,'メニュー');validateTrainingArrays(entry);}}
- for(const row of value.workoutReceipts||[])if(!dateValid(row.date)||!Array.isArray(row.recordIds)||row.recordIds.some(id=>!idValid(id)))throw new Error('実行記録の保存履歴が不正です。');
+ for(const row of value.workoutReceipts||[]){if(!dateValid(row.date)||!Array.isArray(row.recordIds)||row.recordIds.some(id=>!idValid(id)))throw new Error('実行記録の保存履歴が不正です。');if(row.courseSession){const session=row.courseSession;if(!session.plan?.course)throw new Error('コース実施の構成・版がありません。');normalizeWorkoutPlan(session.plan);normalizeBefore(session.before);normalizeAfter(session.after);if(!Array.isArray(session.results)||!['completed','shortened','stopped'].includes(session.completion))throw new Error('コース実施の保存履歴が不正です。');validateTrainingArrays({sessionSetResults:session.results});}}
  for(const row of value.recycleBin||[])recordValid(row.record);
  for(const row of value.recordHistory||[]){if(!idValid(row.recordId)||!row.before&&!row.after)throw new Error('編集履歴の形式が不正です。');for(const r of [row.before,row.after])if(r){recordValid(r);if(r.id!==row.recordId)throw new Error('編集履歴のIDが一致しません。');}}
  for(const key of ['goals','preferences','bodyProfile'])if(value[key]!=null&&(typeof value[key]!=='object'||Array.isArray(value[key])))throw new Error(key+'の形式が不正です。');

@@ -3,6 +3,7 @@ import {resolveExercise,withExerciseIdentity} from './exercise-registry.mjs';
 import {clone,stableJson,newId} from './data-utils.mjs';
 const comparable=row=>{const {updatedAt,createdAt,...rest}=row;return rest;};
 export function historyEntry(action,before,after,now=new Date().toISOString(),id=newId()){return {id,recordId:(after||before).id,action,before:clone(before),after:clone(after),changedAt:now};}
+const courseFields=['course','courseBefore','courseAfter','courseCompletion','coursePrescription','courseEdited'];
 const routine=row=>row.kind==='training'&&(row.trainingMode||'routine')==='routine';
 function normalizeRoutineEdit(before,values){
   if(!routine(before)||!routine(values))return values;
@@ -11,13 +12,13 @@ function normalizeRoutineEdit(before,values){
   const exerciseChanged=before.exerciseName!==after.exerciseName&&!sameExercise;
   if(exerciseChanged){for(const key of ['fingerConditions','gripType','edgeDepthMm'])delete after[key];const fixed=fixedExerciseGrip(after.exerciseName);if(fixed)after.gripType=fixed;}
   const contentKeys=['sets','reps','holdSeconds','durationMinutes','loadKg','loadRecorded','loadMethod','setDetails'];
-  if(exerciseChanged||contentKeys.some(key=>stableJson(before[key])!==stableJson(after[key])))delete after.sessionSetResults;
+  if(exerciseChanged||contentKeys.some(key=>stableJson(before[key])!==stableJson(after[key]))){delete after.sessionSetResults;for(const key of courseFields)delete after[key];}
   return after;
 }
 function normalizeTrainingEdit(before,values,entry){
   if(before.kind!=='training'||values.kind!=='training'||(before.trainingMode||'routine')===(values.trainingMode||'routine'))return normalizeRoutineEdit(before,values);
   const after=withExerciseIdentity(values);
-  for(const key of ['sessionSetResults','workoutSessionId','workoutTitle','workoutStartedAt','workoutFinishedAt','batchSessionId','feedbackScope','aiProposalId','aiPlanDate','aiGeneratedAt','aiPlanModified'])delete after[key];
+  for(const key of [...courseFields,'sessionSetResults','workoutSessionId','workoutTitle','workoutStartedAt','workoutFinishedAt','batchSessionId','feedbackScope','aiProposalId','aiPlanDate','aiGeneratedAt','aiPlanModified'])delete after[key];
   after.recordSource='manual';
   if(after.trainingMode==='maxTest')for(const key of ['setDetails','loadMethod','loadRecorded','fingerConditions'])delete after[key];
   else{
@@ -29,7 +30,7 @@ function normalizeTrainingEdit(before,values,entry){
 const kindSpecificFields={
   gym:['gymName','gymOutcome','gradeLabelSnapshot','colorSnapshot'],
   outdoor:['cragName','areaName','routeName','discipline','gradeSystem','outdoorGrade','result','attemptsRange','weather','rockCondition','partners','projectId'],
-  training:['trainingMode','trainingPlace','exerciseName','catalogExerciseId','exerciseSide','exerciseRegistryVersion','sets','reps','durationMinutes','loadKg','loadRecorded','rpe','loadMethod','setDetails','sessionSetResults','fingerConditions','gripType','edgeDepthMm','holdSeconds','maxType','liftHand','liftMeasurement','addedWeightKg','totalLoadKg','pairGroupId','_pairedMeasurements','workoutSessionId','workoutTitle','workoutStartedAt','workoutFinishedAt','feedbackScope','aiProposalId','aiPlanDate','aiGeneratedAt','aiPlanModified']
+  training:[...courseFields,'trainingMode','trainingPlace','exerciseName','catalogExerciseId','exerciseSide','exerciseRegistryVersion','sets','reps','durationMinutes','loadKg','loadRecorded','rpe','loadMethod','setDetails','sessionSetResults','fingerConditions','gripType','edgeDepthMm','holdSeconds','maxType','liftHand','liftMeasurement','addedWeightKg','totalLoadKg','pairGroupId','_pairedMeasurements','workoutSessionId','workoutTitle','workoutStartedAt','workoutFinishedAt','feedbackScope','aiProposalId','aiPlanDate','aiGeneratedAt','aiPlanModified']
 };
 function normalizeRecordEdit(before,values,entry){
   if(before.kind===values.kind)return normalizeTrainingEdit(before,values,entry);
