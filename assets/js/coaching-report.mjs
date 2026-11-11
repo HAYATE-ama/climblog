@@ -8,7 +8,7 @@ export function coachingReport(state,{from,to,goal='',notes=false,body=false,loc
  const source=Array.isArray(state?.records)?state.records:[],selected=source.filter(r=>r&&date(r.date)&&(!from||r.date>=from)&&r.date<=to&&['gym','outdoor','training'].includes(r.kind)).sort((a,b)=>a.date.localeCompare(b.date));
  const records=selected.map(r=>{
   const row={date:r.date,kind:r.kind};
-  const training=r.kind==='training',textKeys=['grade',...(training?['exerciseId','catalogExerciseId','exerciseSide','exerciseName','trainingMode','maxType','gripType','liftMeasurement','liftHand','loadMethod']:r.kind==='outdoor'?['result','discipline']:['gymOutcome','result'])];
+  const training=r.kind==='training',textKeys=['grade',...(training?['exerciseId','catalogExerciseId','exerciseSide','exerciseName','trainingMode','maxType','gripType','liftMeasurement','liftHand','loadMethod']:r.kind==='outdoor'?['result','discipline','ascentType']:['gymOutcome','result'])];
   for(const key of textKeys)if(typeof r[key]==='string'&&r[key])row[key]=clean(r[key]);
   for(const key of training?['sets','reps','holdSeconds','durationMinutes','rpe','edgeDepthMm','addedWeightKg','exerciseRegistryVersion']:['sends','tries']){const n=numeric(r[key]);if(n!==null)row[key]=n;}
   if(training&&r.loadKg!=null){row.loadRecorded=isRecordedLoad(r,r.loadMethod);row.loadKg=row.loadRecorded?numeric(r.loadKg):null;}
