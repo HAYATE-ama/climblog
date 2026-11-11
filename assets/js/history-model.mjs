@@ -40,10 +40,15 @@ function normalizeRecordEdit(before,values,entry){
   after.recordSource=entry.recordSource||'manual';
   return after.kind==='training'?withExerciseIdentity(after):after;
 }
+export function validateRecordDate(value){
+  const parsed=typeof value==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value)?new Date(value+'T00:00:00Z'):null;
+  if(!parsed||!Number.isFinite(parsed.getTime())||parsed.toISOString().slice(0,10)!==value)throw new Error('記録日をカレンダーから選択してください。');
+  return value;
+}
 export function prepareRecordCommit(records,entries,{editingId=null,date,history=[],now=new Date().toISOString(),createId=newId}={}){
   if(!entries.length)throw new Error('記録する項目がありません。');
   const next=clone(records),changes=clone(history),ids=[];
-  if(editingId){if(entries.length!==1)throw new Error('編集中の記録は1件ずつ更新してください。');const index=next.findIndex(row=>row.id===editingId);if(index<0)throw new Error('編集中の記録が見つかりません。');const before=next[index],after=normalizeRecordEdit(before,{...before,...clone(entries[0]),id:before.id,date:before.date,updatedAt:now},entries[0]);if(stableJson(comparable(before))!==stableJson(comparable(after)))changes.push(historyEntry('edit',before,after,now,createId()));next[index]=after;ids.push(after.id);}
+  if(editingId){if(entries.length!==1)throw new Error('編集中の記録は1件ずつ更新してください。');const index=next.findIndex(row=>row.id===editingId);if(index<0)throw new Error('編集中の記録が見つかりません。');const before=next[index],values={...before,...clone(entries[0]),id:before.id,date:date===undefined?before.date:validateRecordDate(date),updatedAt:now},after=Object.keys(entries[0]).length?normalizeRecordEdit(before,values,entries[0]):values;if(stableJson(comparable(before))!==stableJson(comparable(after)))changes.push(historyEntry('edit',before,after,now,createId()));next[index]=after;ids.push(after.id);}
   else for(const values of entries){const row={...clone(values),recordSource:['timer','copy'].includes(values.recordSource)?values.recordSource:'manual',id:createId(),date,createdAt:now,updatedAt:now};next.push(row);ids.push(row.id);}
   return {records:next,recordHistory:changes,recordIds:ids,isNew:!editingId};
 }

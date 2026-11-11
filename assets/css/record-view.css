@@ -7,3 +7,14 @@
 .recordViewerFoot{position:sticky;bottom:0;padding:12px 20px max(12px,env(safe-area-inset-bottom));background:var(--panel);border-top:1px solid var(--line);z-index:1}
 .recordViewerFoot .recordViewerActions{margin:0}.recordViewerFoot .recordReplay{margin-top:8px}.recordViewerFoot [data-viewer-action=delete]{color:var(--muted)}
 @media(max-width:640px){.recordViewer{padding:0}.recordViewerHead,.recordViewerFoot{padding-inline:16px}.recordViewer #recordViewerBody,.recordViewer #recordReplayNote{padding-inline:16px}.recordViewerHead h2{font-size:18px}}
+
+/* Shared date correction field in manual and course record editors. */
+.recordDateField{display:grid;gap:7px;min-width:0;margin:0 0 14px;font-size:14px;color:var(--text)}
+.recordDateField[hidden]{display:none!important}
+.recordDateField input[type=date]{box-sizing:border-box;display:block;min-width:0;width:100%;min-height:44px;padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--text);font:inherit;font-size:16px}
+.recordDateField input:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
+.recordDateField small{color:var(--muted);font-size:12px;line-height:1.6}
+
+#courseRecordEditor{padding:16px}
+#courseRecordEditor .recordViewerHead{margin:-16px -16px 16px;top:-16px;padding:12px 16px}
+#courseRecordEditor .recordViewerHead [data-close]{flex:none;margin:0;padding:0;font-size:22px;line-height:1}

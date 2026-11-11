@@ -12,13 +12,16 @@ export function installRecordWorkflow({recordApi,states,panels,setControl,snapsh
   const banner=document.createElement('section');banner.className='draftResume';banner.id='draftResumeBanner';banner.hidden=true;
   banner.innerHTML='<label>この端末に保存した入力途中の記録<select id="draftResumeSelect" aria-label="再開する下書き"></select></label><button type="button" id="resumeInputDraft">再開</button><button type="button" id="removeInputDraft">破棄</button>';
   $('#mainNavigation').insertAdjacentElement('afterend',banner);
-  const tools=document.createElement('section');tools.className='recordTools';tools.innerHTML='<div class="recordToolsTop"><small id="recordInputDate"></small><button type="button" id="copyPreviousRecord">前回の記録をコピー</button><button type="button" id="discardCurrentInput">下書きを破棄</button></div><p id="inputDraftStatus" role="status">入力途中の内容は、この端末に自動保存されます。</p>';
+  const tools=document.createElement('section');tools.className='recordTools';tools.innerHTML='<label id="recordDateField" class="recordDateField" hidden>記録日<input id="recordDate" type="date" required aria-describedby="recordDateHint"><small id="recordDateHint">選んだ記録だけの日付を変更します。</small></label><div class="recordToolsTop"><small id="recordInputDate"></small><button type="button" id="copyPreviousRecord">前回の記録をコピー</button><button type="button" id="discardCurrentInput">下書きを破棄</button></div><p id="inputDraftStatus" role="status">入力途中の内容は、この端末に自動保存されます。</p>';
   $('#modalTitle').insertAdjacentElement('afterend',tools);
-  const formIds=['kind',...modal.querySelectorAll('.formPanel input[id],.formPanel select[id],.formPanel textarea[id]')].map(item=>typeof item==='string'?item:item.id).filter(id=>id!=='maxBodyweight');
+  const formIds=['kind','recordDate',...modal.querySelectorAll('.formPanel input[id],.formPanel select[id],.formPanel textarea[id]')].map(item=>typeof item==='string'?item:item.id).filter(id=>id!=='maxBodyweight');
   const allowed=new Set(formIds);
   let target=null,baseline='',suppress=false;
   const readForm=()=>Object.fromEntries(formIds.map(id=>[id,$('#'+id).value]));
   const fingerprint=form=>JSON.stringify(form);
+  recordApi.getEditDate=()=>$('#recordDate').value;
+  // A date-only correction must preserve saved actuals, measurement conditions and bodyweight.
+  recordApi.isDateOnlyEdit=()=>Boolean(target?.recordId&&baseline&&fingerprint({...readForm(),recordDate:JSON.parse(baseline).recordDate})===baseline);
   function renderBanner(){
     const rows=store.list(),select=$('#draftResumeSelect'),keep=select.value;banner.hidden=!rows.length;
     select.replaceChildren(...rows.map(row=>{const form=row.form,name=form.kind==='gym'?form.gymName:form.kind==='outdoor'?(form.routeName||form.cragName):form.trainingMode==='maxTest'?({hangboard:'ハングボード',singleHandLift:'片手リフト',weightedPullup:'加重懸垂'}[form.maxType]||'測定'):form.exerciseName;return new Option(`${row.date} · ${{gym:'ジム',outdoor:'外岩',training:'トレーニング'}[form.kind]||'活動'}${name?' · '+name:''}${row.recordId?'（編集途中）':''}`,row.key);}));
@@ -55,7 +58,7 @@ export function installRecordWorkflow({recordApi,states,panels,setControl,snapsh
   function updateCopy(){const kind=$('#kind').value,button=$('#copyPreviousRecord'),available=previous().length>0;button.hidden=kind==='outdoor'||recordApi.isEditing();button.disabled=!available;button.textContent=available?'前回の記録をコピー':'前回の記録なし';$('#discardCurrentInput').disabled=!target;}
   window.addEventListener('climblog:recordOpened',()=>{
     suppress=true;const existing=recordApi.getEditingRecord(),date=window.climbLogGetSelectedDate();target={key:existing?'edit:'+existing.id:'new:'+date,date,recordId:existing?.id||null};
-    $('#recordInputDate').textContent=`${date} の記録`;
+    $('#recordInputDate').textContent=`${date} の記録`;$('#recordInputDate').hidden=Boolean(existing);$('#recordDateField').hidden=!existing;$('#recordDate').value=existing?.date||date;
     $('#cancel').textContent='閉じる';$('#cancel').setAttribute('aria-label','下書きを保存して閉じる');
     baseline=fingerprint(readForm());suppress=false;
     const saved=store.get(target.key);if(saved)restore(saved);else $('#inputDraftStatus').textContent='入力途中の内容は、この端末に自動保存されます。';
