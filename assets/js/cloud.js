@@ -1,4 +1,5 @@
 import {stableJson} from './data-utils.mjs';
+import {prepareOutdoorAscentReset} from './outdoor-season.mjs';
 import {saveCloudSnapshot} from './cloud-sync.mjs';
 import {installAuthLoading} from './auth-loading.mjs';
 import {readVerifiedAccount,preloadAppModules} from './auth-startup.mjs';
@@ -120,7 +121,10 @@ if(!config.supabaseUrl||!config.supabasePublishableKey||config.supabaseUrl.inclu
   loadAccountPayload(localStorage,payload,origSet,origRemove);localFingerprint=stableJson(buildCloudPayload(localStorage));initializing=true;
   appImportStarted=true;
   try{await bounded(import('./app.js'));await bounded(import('./enhancements.js'));}finally{initializing=false;}
-  if(epoch!==loadingEpoch||locking)return;if((readPending(user.id)?.revision??null)!==expectedPendingRevision)throw new Error('未同期の記録が別の画面で更新されました。再読み込みして確認し直してください。');const finalReason=policyReason(authStore.getPolicy());if(finalReason){await lock(finalReason);return;}ready=true;appRoot.inert=false;appRoot.hidden=false;authScreen.hidden=true;authScreen.style.display='none';$('authPassword').value='';client.auth.startAutoRefresh?.();activityWriteAt=Date.now();showStoredStatus();
+  if(epoch!==loadingEpoch||locking)return;if((readPending(user.id)?.revision??null)!==expectedPendingRevision)throw new Error('未同期の記録が別の画面で更新されました。再読み込みして確認し直してください。');const finalReason=policyReason(authStore.getPolicy());if(finalReason){await lock(finalReason);return;}ready=true;
+  // Apply the user-requested reset atomically before revealing the authenticated app.
+  try{const ascentReset=prepareOutdoorAscentReset(window.climbLogStateApi.get());if(ascentReset)window.climbLogStateApi.apply(ascentReset);}catch(error){ready=false;throw error;}
+  appRoot.inert=false;appRoot.hidden=false;authScreen.hidden=true;authScreen.style.display='none';$('authPassword').value='';client.auth.startAutoRefresh?.();activityWriteAt=Date.now();showStoredStatus();
   window.climbLogAuthReady=true;window.dispatchEvent(new Event('climblog:authenticated'));if(readPending(user.id))void sync();
  }
  function showPendingChoice(remote,pending,epoch){

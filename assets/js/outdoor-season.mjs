@@ -1,4 +1,4 @@
-// Derive season totals from records; never rewrite historical records.
+// Season calculations and the user-requested one-time reset return new data without mutating inputs.
 export function seasonDate(v){if(typeof v!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(v))return false;const d=new Date(v+'T00:00:00Z');return Number.isFinite(+d)&&d.toISOString().slice(0,10)===v;}
 export const displaySeasonDate=v=>v.replaceAll('-','/');
 export function validateOutdoorSeason(raw){if(!raw||!seasonDate(raw.from)||!seasonDate(raw.to)||raw.from>raw.to||Number(raw.from.slice(0,4))<1900||Number(raw.to.slice(0,4))>2200)throw new Error('開始日と終了日を確認してください。終了日は開始日以降にしてください。');if(raw.name!=null&&(typeof raw.name!=='string'||raw.name.length>60))throw new Error('シーズン名は60文字以内で入力してください。');return {name:(raw.name||'').trim(),from:raw.from,to:raw.to};}
@@ -9,8 +9,12 @@ const chronological=(a,b)=>a.date.localeCompare(b.date)||String(a.createdAt||'')
 const name=v=>typeof v==='string'?v.normalize('NFKC').trim().replace(/\s+/g,' '):'';
 export function outdoorProblemKey(r){const crag=name(r.cragName||r.place),route=name(r.routeName);return crag&&crag!=='未設定'&&route?JSON.stringify([crag,name(r.areaName),route,r.discipline||'boulder']):null;}
 export function danValue(r){if(r.discipline&&r.discipline!=='boulder'||r.gradeSystem&&r.gradeSystem!=='日本（段級）')return null;const grade=name(r.outdoorGrade||r.grade),jp=['初','二','三','四','五','六','七','八','九','十'];const i=jp.findIndex(v=>grade===v+'段');if(i>=0)return i+1;const m=grade.match(/^([1-9]|10)段$/);return m?Number(m[1]):null;}
-export function classifyOutdoorSends(records){const seen=new Set(),result=new Map();const sends=(records||[]).filter(r=>isOutdoorSend(r)&&seasonDate(r.date)).sort(chronological);
- for(const r of sends){const key=outdoorProblemKey(r),explicit=['new','repeat'].includes(r.ascentType),type=explicit?r.ascentType:key?(seen.has(key)?'repeat':'new'):'unknown';result.set(r.id,{type,inferred:!explicit,key});if(key)seen.add(key);}
+export function prepareOutdoorAscentReset(state){
+ if(state?.preferences?.outdoorAscentResetVersion===1)return null;
+ return {records:(state?.records||[]).map(r=>r?.kind==='outdoor'?{...r,ascentType:isOutdoorSend(r)?'new':null}:r),preferences:{...state?.preferences,outdoorAscentResetVersion:1}};
+}
+export function classifyOutdoorSends(records){const result=new Map();const sends=(records||[]).filter(r=>isOutdoorSend(r)&&seasonDate(r.date)).sort(chronological);
+ for(const r of sends){result.set(r.id,{type:r.ascentType==='repeat'?'repeat':'new',inferred:false,key:outdoorProblemKey(r)});}
  return result;
 }
 export function outdoorDanSummary(records,range){const classification=classifyOutdoorSends(records),newKeys=new Set(),repeatDays=new Set(),completeDays=new Set();let newDan=0,repeatDan=0,newProblems=0,repeatAscents=0,unknown=0,inferred=0,ungraded=0,duplicateNew=0;const entries=[];
