@@ -20,6 +20,6 @@ export function outdoorDanSummary(records,range){const classification=classifyOu
   if(c.type==='unknown')unknown++;else if(c.type==='new'){if(newKeys.has(key))duplicateNew++;else{newKeys.add(key);newProblems++;if(dan!=null){newDan+=dan;counted=true;}}}else{const daily=JSON.stringify([key,r.date]);if(!repeatDays.has(daily)){repeatDays.add(daily);repeatAscents++;if(dan!=null){repeatDan+=dan;counted=true;}}}
   if(c.inferred)inferred++;if(dan==null)ungraded++;entries.push({id:r.id,...c,dan,counted});
  }
- return {newDan,repeatDan,newProblems,repeatAscents,unknown,inferred,ungraded,duplicateNew,entries};
+ return {newDan,repeatDan,totalDan:newDan+repeatDan,newProblems,repeatAscents,unknown,inferred,ungraded,duplicateNew,entries};
 }
 export function seasonMonthBuckets(rows,range){const buckets=new Map();let year=Number(range.from.slice(0,4)),month=Number(range.from.slice(5,7));const end=range.to.slice(0,7);for(let i=0;i<3613;i++){const key=year+'-'+String(month).padStart(2,'0');if(key>end)break;buckets.set(key,{label:year+'/'+String(month).padStart(2,'0'),value:0});if(++month>12){month=1;year++;}}for(const r of rows){const b=buckets.get(r.date.slice(0,7));if(b)b.value++;}return [...buckets.values()];}

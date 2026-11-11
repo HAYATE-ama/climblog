@@ -19,10 +19,14 @@ if(!config.supabaseUrl||!config.supabasePublishableKey||config.supabaseUrl.inclu
  const origSet=Storage.prototype.setItem,origRemove=Storage.prototype.removeItem;
  const project=new URL(config.supabaseUrl).hostname.split('.')[0],prefix='climbLogAuth:'+project,tokenKey=prefix+':token',signalKey=prefix+':event',ownerKey=prefix+':owner';
  const authStore=createAuthStorage({local:localStorage,tab:sessionStorage,prefix});
- let client,user=null,ready=false,initializing=false,signup=false,submitting=false,locking=false,loadingEpoch=0,syncTimer=null,writes=Promise.resolve(),remoteVersion=null,activityWriteAt=0,previousTraining=false,appImportStarted=false,syncConflict=false,localFingerprint=null;
+ let client,user=null,ready=false,initializing=false,signup=false,submitting=false,locking=false,loadingEpoch=0,syncTimer=null,writes=Promise.resolve(),remoteVersion=null,activityWriteAt=0,previousTraining=false,appImportStarted=false,syncConflict=false,localFingerprint=null,localSaveNotice='';
  const pendingKey=id=>'climbLogPendingState:'+id;
  const parse=(key,fallback=null)=>{try{return JSON.parse(localStorage.getItem(key)||'null')??fallback;}catch{return fallback;}};
  const writeRaw=(key,value)=>origSet.call(localStorage,key,JSON.stringify(value));
+ function setSyncStatus(text,{retry=false,detail=''}={}){syncStatus.textContent=text;syncStatus.disabled=!retry;syncStatus.title=detail;syncStatus.setAttribute('aria-label',detail||text);}
+ function showStoredStatus(){if(localSaveNotice){setSyncStatus(localSaveNotice);return;}const offline=navigator.onLine===false,pending=user&&readPending(user.id);setSyncStatus(offline?'端末保存済み\nオフライン':pending?'端末保存済み\n未同期 ↻':'同期済み',{retry:!offline&&Boolean(pending)&&!syncConflict,detail:offline?'この端末に保存済みです。接続が戻ると同期します。':pending?'この端末に保存済みです。クラウド同期を再試行するには押してください。':'クラウドとこの端末に保存済みです。'});}
+ function scheduleReconnectSync(){if(!ready||syncConflict||!check())return;clearTimeout(syncTimer);if(navigator.onLine===false){showStoredStatus();return;}syncTimer=setTimeout(()=>void sync(),500);}
+ syncStatus.addEventListener('click',()=>{if(!syncStatus.disabled){clearTimeout(syncTimer);void sync();}});
  const readPending=id=>{const value=parse(pendingKey(id));return value?.userId===id&&value.payload&&Array.isArray(value.payload.records)&&typeof value.revision==='string'?value:null;};
  function hidePrivateUI(){window.climbLogAuthReady=false;
   window.dispatchEvent(new Event('climblog:authLock'));
@@ -68,7 +72,7 @@ if(!config.supabaseUrl||!config.supabasePublishableKey||config.supabaseUrl.inclu
   const owner=localStorage.getItem(ownerKey);if(owner&&owner!==user?.id){void lock('accountChanged',{revoke:false,notify:false});return false;}return true;
  }
  function showSyncConflict(){
-  syncConflict=true;syncStatus.textContent='同期を保留';
+  syncConflict=true;setSyncStatus('同期を保留',{detail:'端末とクラウドの両方に変更があります。画面内の「同期内容を確認」から確認してください。'});
   let notice=$('syncConflictNotice');if(notice)return;
   notice=document.createElement('section');notice.id='syncConflictNotice';notice.className='card';notice.setAttribute('role','status');
   const text=document.createElement('p');text.textContent='別の端末で記録が更新されています。この端末の変更は保管し、クラウドへの上書きを止めました。';
@@ -76,19 +80,19 @@ if(!config.supabaseUrl||!config.supabasePublishableKey||config.supabaseUrl.inclu
   notice.append(text,button);$('mainNavigation').after(notice);
  }
  async function sync(){
-  if(!check()||!user||syncConflict)return false;const id=user.id,epoch=loadingEpoch;
+  if(!check()||!user||syncConflict)return false;if(navigator.onLine===false){showStoredStatus();return false;}const id=user.id,epoch=loadingEpoch;
   const send=async()=>{
    if(!ready||epoch!==loadingEpoch||user?.id!==id||!check()||syncConflict)return false;
    // Read the latest queued revision after earlier writes have finished.
-   const pending=readPending(id);if(!pending)return true;syncStatus.textContent='同期中';
+   if(navigator.onLine===false){showStoredStatus();return false;}const pending=readPending(id);if(!pending){showStoredStatus();return true;}setSyncStatus('同期中',{detail:'端末に保存済みの記録をクラウドへ同期しています。'});
    try{
     const result=await saveCloudSnapshot({client,userId:id,payload:pending.payload,baseUpdatedAt:pending.baseUpdatedAt??null,bounded});
     if(!ready||epoch!==loadingEpoch)return false;
     if(result.conflict){showSyncConflict();return false;}
     remoteVersion=result.updatedAt;const latest=readPending(id);
     if(latest?.revision===pending.revision)origRemove.call(localStorage,pendingKey(id));else if(latest)writeRaw(pendingKey(id),{...latest,baseUpdatedAt:remoteVersion});
-    syncStatus.textContent=readPending(id)?'未同期（この端末に保留）':'同期済み';return true;
-   }catch(error){syncStatus.textContent='未同期（この端末に保留）';if(error.status===401||error.code==='PGRST301')void lock('authError');return false;}
+    showStoredStatus();return true;
+   }catch(error){showStoredStatus();if(error.status===401||error.code==='PGRST301')void lock('authError');return false;}
   };
   writes=writes.then(send,send);return writes;
  }
@@ -96,15 +100,15 @@ if(!config.supabaseUrl||!config.supabasePublishableKey||config.supabaseUrl.inclu
   if(!rows.length)return;
   if(!initializing&&!check())throw new Error('再ログインしてから保存してください。');
   if(!initializing&&localFingerprint!==null&&stableJson(buildCloudPayload(localStorage))!==localFingerprint){
-   syncStatus.textContent='別のタブで更新あり（再読み込みが必要）';
+   localSaveNotice='別のタブで更新あり（再読み込みが必要）';setSyncStatus(localSaveNotice);
    throw new Error('別のタブで記録や設定が更新されました。保存していません。入力内容を控えてから再読み込みしてください。記録フォームは「閉じる」で下書きを残せます。');
   }
   const changes=new Map(rows.map(row=>[row.key,row.value]));
   const payload=buildCloudPayload({getItem:key=>changes.has(key)?changes.get(key):localStorage.getItem(key)});
   const old=readPending(user.id),pending={userId:user.id,payload,revision:crypto.randomUUID(),baseUpdatedAt:old?.baseUpdatedAt??remoteVersion,savedAt:new Date().toISOString()};
   try{commitStorageRows(localStorage,[{key:pendingKey(user.id),value:JSON.stringify(pending)},...rows],{setItem:origSet,removeItem:origRemove});}
-  catch{syncStatus.textContent='未保存（端末の空き容量を確認）';throw new Error('端末の空き容量が足りないため保存できませんでした。入力内容を残したまま、空き容量を確認してください。');}
-  localFingerprint=stableJson(payload);syncStatus.textContent='未同期（この端末に保留）';clearTimeout(syncTimer);syncTimer=setTimeout(()=>void sync(),500);
+  catch{localSaveNotice='未保存（端末の空き容量を確認）';setSyncStatus(localSaveNotice);throw new Error('端末の空き容量が足りないため保存できませんでした。入力内容を残したまま、空き容量を確認してください。');}
+  localSaveNotice='';localFingerprint=stableJson(payload);showStoredStatus();clearTimeout(syncTimer);if(navigator.onLine!==false)syncTimer=setTimeout(()=>void sync(),500);
  }
  registerAccountPatchWriter(localStorage,commitAccountRows);
  Storage.prototype.setItem=function(key,value){
@@ -116,7 +120,7 @@ if(!config.supabaseUrl||!config.supabasePublishableKey||config.supabaseUrl.inclu
   loadAccountPayload(localStorage,payload,origSet,origRemove);localFingerprint=stableJson(buildCloudPayload(localStorage));initializing=true;
   appImportStarted=true;
   try{await bounded(import('./app.js'));await bounded(import('./enhancements.js'));}finally{initializing=false;}
-  if(epoch!==loadingEpoch||locking)return;if((readPending(user.id)?.revision??null)!==expectedPendingRevision)throw new Error('未同期の記録が別の画面で更新されました。再読み込みして確認し直してください。');const finalReason=policyReason(authStore.getPolicy());if(finalReason){await lock(finalReason);return;}ready=true;appRoot.inert=false;appRoot.hidden=false;authScreen.hidden=true;authScreen.style.display='none';$('authPassword').value='';client.auth.startAutoRefresh?.();activityWriteAt=Date.now();syncStatus.textContent=readPending(user.id)?'未同期（復元済み）':'同期済み';
+  if(epoch!==loadingEpoch||locking)return;if((readPending(user.id)?.revision??null)!==expectedPendingRevision)throw new Error('未同期の記録が別の画面で更新されました。再読み込みして確認し直してください。');const finalReason=policyReason(authStore.getPolicy());if(finalReason){await lock(finalReason);return;}ready=true;appRoot.inert=false;appRoot.hidden=false;authScreen.hidden=true;authScreen.style.display='none';$('authPassword').value='';client.auth.startAutoRefresh?.();activityWriteAt=Date.now();showStoredStatus();
   window.climbLogAuthReady=true;window.dispatchEvent(new Event('climblog:authenticated'));if(readPending(user.id))void sync();
  }
  function showPendingChoice(remote,pending,epoch){
@@ -157,7 +161,7 @@ if(!config.supabaseUrl||!config.supabasePublishableKey||config.supabaseUrl.inclu
   if(Date.now()-activityWriteAt>=5000){try{authStore.touch();activityWriteAt=Date.now();}catch{void lock('authError');}}
  },{capture:true,passive:false});
  for(const type of ['click','submit','keydown'])document.addEventListener(type,event=>{if(!ready&&!authScreen.contains(event.target)){event.preventDefault();event.stopImmediatePropagation();}},true);
- document.addEventListener('visibilitychange',()=>{if(!document.hidden)check();});window.addEventListener('pageshow',()=>check());setInterval(check,1000);
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)scheduleReconnectSync();});window.addEventListener('pageshow',scheduleReconnectSync);window.addEventListener('focus',scheduleReconnectSync);window.addEventListener('online',scheduleReconnectSync);window.addEventListener('offline',()=>{clearTimeout(syncTimer);if(ready&&check()&&!syncConflict)showStoredStatus();});setInterval(check,1000);
  function download(data,name){const blob=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),...data},null,2)],{type:'application/json'}),link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download=name;link.click();setTimeout(()=>URL.revokeObjectURL(link.href),1000);}
  $('exportData').addEventListener('click',()=>{if(check())download(buildCloudPayload(localStorage),'climblog-backup-'+new Date().toISOString().slice(0,10)+'.json');});
  $('signOut').addEventListener('click',async()=>{

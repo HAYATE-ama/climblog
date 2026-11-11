@@ -5,3 +5,6 @@
 .authLoading{display:flex;align-items:center;justify-content:center;gap:12px;padding:16px;margin-bottom:16px;background:var(--panel2,#242424);color:var(--text,#eee);border:1px solid var(--line,#555);border-radius:12px}.authLoading[hidden]{display:none}.authSpinner{width:24px;height:24px;border:3px solid #8886;border-top-color:#ff6f00;border-radius:50%;animation:authSpin .8s linear infinite;flex-shrink:0}@keyframes authSpin{to{transform:rotate(360deg)}}@media(prefers-reduced-motion:reduce){.authSpinner{animation-duration:2s}}
 
 .authCard[aria-busy=true]>:not(#authLoading):not(.brand):not(#authMessage){display:none}.authCard[aria-busy=true]{min-height:240px}.authCard[aria-busy=true] .authLoading{flex-direction:column;text-align:center;margin-top:24px;padding:24px}
+
+/* Keep local-save and reconnect status readable without widening the mobile header. */
+.user button.syncState{max-width:145px;min-height:44px;padding:3px 5px;border:0;background:transparent;color:var(--muted);font-size:12px;line-height:1.35;white-space:pre-line;text-align:right;overflow-wrap:anywhere}.user button.syncState:disabled{opacity:1;cursor:default}.user button.syncState:not(:disabled){text-decoration:underline;text-underline-offset:3px;cursor:pointer}.user button.syncState:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
