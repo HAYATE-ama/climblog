@@ -1,3 +1,5 @@
+import {japaneseDanPoints} from './japanese-boulder-grades.mjs';
+
 // Season calculations and the user-requested one-time reset return new data without mutating inputs.
 export function seasonDate(v){if(typeof v!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(v))return false;const d=new Date(v+'T00:00:00Z');return Number.isFinite(+d)&&d.toISOString().slice(0,10)===v;}
 export const displaySeasonDate=v=>v.replaceAll('-','/');
@@ -8,7 +10,11 @@ export const isOutdoorSend=r=>r?.kind==='outdoor'&&['send','flash','onsight','re
 const chronological=(a,b)=>a.date.localeCompare(b.date)||String(a.createdAt||'').localeCompare(String(b.createdAt||''))||String(a.id||'').localeCompare(String(b.id||''));
 const name=v=>typeof v==='string'?v.normalize('NFKC').trim().replace(/\s+/g,' '):'';
 export function outdoorProblemKey(r){const crag=name(r.cragName||r.place),route=name(r.routeName);return crag&&crag!=='未設定'&&route?JSON.stringify([crag,name(r.areaName),route,r.discipline||'boulder']):null;}
-export function danValue(r){if(r.discipline&&r.discipline!=='boulder'||r.gradeSystem&&r.gradeSystem!=='日本（段級）')return null;const grade=name(r.outdoorGrade||r.grade),jp=['初','二','三','四','五','六','七','八','九','十'];const i=jp.findIndex(v=>grade===v+'段');if(i>=0)return i+1;const m=grade.match(/^([1-9]|10)段$/);return m?Number(m[1]):null;}
+export function danValue(r){
+ if((r.discipline&&r.discipline!=='boulder')||(r.gradeSystem&&r.gradeSystem!=='日本（段級）'))return null;
+ const grade=r.outdoorGrade||r.grade;
+ return typeof grade==='string'?japaneseDanPoints(grade):null;
+}
 export function prepareOutdoorAscentReset(state){
  if(state?.preferences?.outdoorAscentResetVersion===1)return null;
  return {records:(state?.records||[]).map(r=>r?.kind==='outdoor'?{...r,ascentType:isOutdoorSend(r)?'new':null}:r),preferences:{...state?.preferences,outdoorAscentResetVersion:1}};

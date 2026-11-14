@@ -1,5 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {validateOutdoorSeason,outdoorSeasonRange,outdoorDanSummary,danValue,classifyOutdoorSends,seasonMonthBuckets,prepareOutdoorAscentReset} from '../assets/js/outdoor-season.mjs';
+import {boulderJapaneseGrades} from '../assets/js/japanese-boulder-grades.mjs';
 import {buildStatsData,moveStatsPeriod} from '../assets/js/stats-model.mjs';
 import {validateBackup} from '../assets/js/backup-model.mjs';
 import {buildCloudPayload} from '../assets/js/features.mjs';
@@ -9,7 +10,27 @@ test('season supports inclusive cross-year dates, leap days and slash-formatted 
 test('new ascents add dan once and explicitly selected repeats add on separate days',()=>{const records=[r('old','2026-09-30','A'),r('a','2026-10-01','A','二段',{ascentType:'repeat'}),r('b','2026-10-02','A','二段',{ascentType:'repeat'}),r('c','2026-10-02','A','二段',{ascentType:'repeat'}),r('d','2026-11-01','B','三段'),r('e','2027-03-31','C','初段'),r('future','2027-04-01','D')],before=structuredClone(records),out=outdoorDanSummary(records,range);assert.equal(out.newDan,4);assert.equal(out.repeatDan,4);assert.equal(out.totalDan,8);assert.equal(out.newProblems,2);assert.equal(out.repeatAscents,2);assert.equal(out.entries.find(e=>e.id==='c').duplicate,true);assert.deepEqual(records,before);});
 test('same-day duplicate first send does not become extra repeat points',()=>{const result=outdoorDanSummary([r('a','2026-10-01','A'),r('b','2026-10-01','A')],range);assert.equal(result.newDan,2);assert.equal(result.repeatDan,0);assert.equal(result.totalDan,2);});
 test('explicit repeat works without prior history, while explicit new remains unique per problem',()=>{const records=[r('a','2026-10-01','A','二段',{ascentType:'repeat'}),r('b','2026-10-02','B','三段',{ascentType:'new'}),r('c','2026-10-03','B','三段',{ascentType:'new'})],out=outdoorDanSummary(records,range);assert.equal(out.newDan,3);assert.equal(out.repeatDan,2);assert.equal(out.inferred,0);assert.equal(out.duplicateNew,1);});
-test('failed attempts, kyu, lead and ambiguous grades never become dan points',()=>{const records=[r('fail','2026-11-01','A','三段',{result:'attempt'}),r('kyu','2026-11-02','B','1級'),r('lead','2026-11-03','C','二段',{discipline:'lead'}),r('ambiguous','2026-11-04','D','初/二段')];assert.equal(outdoorDanSummary(records,range).newDan,0);assert.equal(outdoorDanSummary(records,range).entries.length,3);assert.equal(danValue(r('x','2026-10-01','X','初段')),1);assert.equal(danValue(r('x','2026-10-01','X','３段')),3);});
+test('failed attempts, kyu, lead and ambiguous grades never become dan points',()=>{const records=[r('fail','2026-11-01','A','三段',{result:'attempt'}),r('kyu','2026-11-02','B','1級'),r('lead','2026-11-03','C','二段',{discipline:'lead'}),r('ambiguous','2026-11-04','D','初/三段')];assert.equal(outdoorDanSummary(records,range).newDan,0);assert.equal(outdoorDanSummary(records,range).entries.length,3);assert.equal(danValue(r('x','2026-10-01','X','初段')),1);assert.equal(danValue(r('x','2026-10-01','X','３段')),3);});
+test('Japanese boulder grades offer each adjacent dan pair in order at its midpoint',()=>{
+ const names=['初','二','三','四','五','六','七','八','九','十'];
+ assert.deepEqual(boulderJapaneseGrades.slice(0,10),Array.from({length:10},(_,i)=>(10-i)+'級'));
+ const options=boulderJapaneseGrades.slice(10);
+ assert.equal(options.length,19);
+ for(const [i,label] of options.entries()){
+   const lower=Math.floor(i/2);
+   assert.equal(label,i%2?names[lower]+'/'+names[lower+1]+'段':names[lower]+'段');
+   assert.equal(danValue({outdoorGrade:label,discipline:'boulder',gradeSystem:'日本（段級）'}),1+i/2);
+ }
+ assert.equal(danValue({grade:'初／二段'}),1.5);
+ assert.equal(danValue({grade:'初/二段',gradeSystem:'V Scale'}),null);
+ assert.equal(danValue({grade:'初/二段',discipline:'lead'}),null);
+});
+test('split dan grades count for new sends and separate repeat days, preserving the recorded label',()=>{
+ const rows=[r('a','2026-11-01','A','初/二段'),r('b','2026-11-02','A','初/二段',{ascentType:'repeat'}),r('c','2026-11-02','A','初/二段',{ascentType:'repeat'}),r('d','2026-11-03','B','二/三段',{result:'attempt'})];
+ const {newDan,repeatDan,totalDan}=outdoorDanSummary(rows,range);
+ assert.deepEqual([newDan,repeatDan,totalDan],[1.5,1.5,3]);
+ assert.deepEqual(validateBackup({records:rows}).records,rows);
+});
 test('route identity uses crag, area and discipline; absent route still defaults to new',()=>{const records=[r('a','2026-10-01','A'),r('b','2026-10-02','A','二段',{cragName:'岩B'}),r('c','2026-10-03','A','二段',{areaName:'別エリア'}),r('d','2026-10-04','','二段'),r('e','2026-10-05','','二段',{ascentType:'repeat'})];const out=outdoorDanSummary(records,range);assert.equal(out.newDan,8);assert.equal(out.repeatDan,2);assert.equal(out.unknown,0);});
 test('history never infers repeats; only explicit repeat selections affect the breakdown',()=>{const records=[r('a','2026-09-01','A','二段',{result:'attempt'}),r('b','2026-10-01','A'),r('c','2026-11-01','A')];assert.equal(classifyOutdoorSends(records).get('b').type,'new');records[1].ascentType='repeat';assert.equal(outdoorDanSummary(records,range).newDan,2);assert.equal(outdoorDanSummary(records,range).repeatDan,2);});
 test('custom season scopes summary, chart and source rows together across January',()=>{const records=[r('a','2026-01-01','A'),r('b','2027-01-01','B'),r('c','2027-03-31','C'),r('d','2027-04-01','D')];const out=buildStatsData({records},{topic:'outdoor',year:'2026',season:range});assert.deepEqual(out.rows.map(r=>r.id),['c','b']);assert.equal(out.extra.dan.newDan,4);assert.equal(out.bars.find(b=>b.label==='2027/01').value,1);assert.equal(out.bars.reduce((n,b)=>n+b.value,0),2);assert.equal(moveStatsPeriod({topic:'outdoor',year:'2026',season:range},1),null);assert.deepEqual(seasonMonthBuckets([],range).map(b=>b.label),['2026/10','2026/11','2026/12','2027/01','2027/02','2027/03']);});

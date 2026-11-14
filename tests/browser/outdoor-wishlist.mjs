@@ -107,6 +107,22 @@ try{
   await page.waitForFunction(()=>document.activeElement===document.getElementById('openOutdoorWishlist'));
   assert.ok(await launcher.isVisible());await page.reload();await page.waitForFunction(()=>window.__appReady);
   assert.deepEqual(await page.evaluate(()=>window.climbLogStateApi.get().outdoorWishlist),state.outdoorWishlist);
+  await launcher.click();
+  await wish.locator('[data-add]').click();
+  await form.locator('[name=cragName]').fill('中間段位の岩場');
+  await form.locator('[name=routeName]').fill('中間段位の課題');
+  await form.locator('[name=outdoorGrade]').selectOption('初/二段');
+  await form.locator('[type=submit]').click();
+  assert.equal(await pending.locator('.wishRoute small').innerText(),'初/二段');
+  await pending.locator('.wishLog').click();
+  assert.equal(await page.locator('#outdoorGrade').inputValue(),'初/二段');
+  await page.locator('#outdoorResult').selectOption('send');
+  await page.locator('#save').click();
+  await wish.waitFor({state:'visible'});
+  const logged=await page.evaluate(()=>window.climbLogStateApi.get().records.find(r=>r.routeName==='中間段位の課題'));
+  assert.equal(logged.outdoorGrade,'初/二段');
+  await wish.locator('[data-close]').click();
+  await page.getByRole('button',{name:'保存の案内を閉じる'}).click();
   await checkLongList(page,width,launcher,wish);
   assert.deepEqual(alerts,[]);assert.deepEqual(errors,[]);report.push({width,theme,listToSave:true,drafts:true,completion:true,dialogPosition:true,scrollRestored:true});await context.close();
  }
