@@ -10,7 +10,7 @@ export function installCoachScreen(){
  <div class="coachFields"><label for="coachingFrom">開始日<input id="coachingFrom" type="date"></label><label for="coachingTo">終了日<input id="coachingTo" type="date" required></label></div>
  <label for="coachingGoal">相談したいこと・目標<textarea id="coachingGoal" rows="4" maxlength="2000" placeholder="例：長ものの後半で落ちる。記録から弱点と週の練習メニューを考えてほしい。"></textarea></label>
  <details><summary>含める情報を選ぶ</summary><p class="sub">日付・登攀結果・グレード・種目・セット・回数・時間・重量を含めます。</p><label class="coachCheck"><input id="coachingNotes" type="checkbox"> 記録のメモ</label><label class="coachCheck"><input id="coachingBody" type="checkbox"> 体重・身長・リーチ</label><label class="coachCheck"><input id="coachingLocations" type="checkbox"> ジム名・岩場名・課題名</label></details>
- <button type="submit" class="primary">レポートを作成</button><p id="coachingReportStatus" role="status" aria-live="polite"></p></form>
+ <button type="submit" class="primary">相談用レポートを作る</button><p id="coachingReportStatus" role="status" aria-live="polite"></p></form>
  <section id="coachingReportResult" hidden><h3>内容を確認してコピー</h3><p class="sub">コピー後、このアプリの開発を相談しているチャットへ貼り付けてください。長い場合はテキストを保存して添付できます。</p><label for="coachingReportText">相談用レポート<textarea id="coachingReportText" readonly rows="12" spellcheck="false"></textarea></label><div class="coachActions"><button type="button" class="primary" id="copyCoachingReport">相談文と記録をコピー</button><button type="button" class="secondary" id="saveCoachingReport">テキストを保存</button></div><p class="sub">内容を相談してから、必要なコースをテンプレートとしてアプリへ追加します。生成だけで実施記録は作りません。</p></section></section>`;
  const $=id=>view.querySelector('#'+id),form=$('coachingReportForm'),status=$('coachingReportStatus');
  $('coachingFrom').value=daysAgo(28);$('coachingTo').value=today();

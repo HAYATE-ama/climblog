@@ -25,7 +25,7 @@ if(!config.supabaseUrl||!config.supabasePublishableKey||config.supabaseUrl.inclu
  const parse=(key,fallback=null)=>{try{return JSON.parse(localStorage.getItem(key)||'null')??fallback;}catch{return fallback;}};
  const writeRaw=(key,value)=>origSet.call(localStorage,key,JSON.stringify(value));
  function setSyncStatus(text,{retry=false,detail=''}={}){syncStatus.textContent=text;syncStatus.disabled=!retry;syncStatus.title=detail;syncStatus.setAttribute('aria-label',detail||text);}
- function showStoredStatus(){if(localSaveNotice){setSyncStatus(localSaveNotice);return;}const offline=navigator.onLine===false,pending=user&&readPending(user.id);setSyncStatus(offline?'端末保存済み\nオフライン':pending?'端末保存済み\n未同期 ↻':'同期済み',{retry:!offline&&Boolean(pending)&&!syncConflict,detail:offline?'この端末に保存済みです。接続が戻ると同期します。':pending?'この端末に保存済みです。クラウド同期を再試行するには押してください。':'クラウドとこの端末に保存済みです。'});}
+ function showStoredStatus(){if(localSaveNotice){setSyncStatus(localSaveNotice);return;}const offline=navigator.onLine===false,pending=user&&readPending(user.id);setSyncStatus(offline?(pending?'オフライン\n端末保存・同期待ち':'オフライン'):pending?'端末保存済み\n未同期 ↻':'同期済み',{retry:!offline&&Boolean(pending)&&!syncConflict,detail:offline?'この端末に保存済みです。接続が戻ると同期します。':pending?'この端末に保存済みです。クラウド同期を再試行するには押してください。':'クラウドとこの端末に保存済みです。'});}
  function scheduleReconnectSync(){if(!ready||syncConflict||!check())return;clearTimeout(syncTimer);if(navigator.onLine===false){showStoredStatus();return;}syncTimer=setTimeout(()=>void sync(),500);}
  syncStatus.addEventListener('click',()=>{if(!syncStatus.disabled){clearTimeout(syncTimer);void sync();}});
  const readPending=id=>{const value=parse(pendingKey(id));return value?.userId===id&&value.payload&&Array.isArray(value.payload.records)&&typeof value.revision==='string'?value:null;};
@@ -93,7 +93,17 @@ if(!config.supabaseUrl||!config.supabasePublishableKey||config.supabaseUrl.inclu
     remoteVersion=result.updatedAt;const latest=readPending(id);
     if(latest?.revision===pending.revision)origRemove.call(localStorage,pendingKey(id));else if(latest)writeRaw(pendingKey(id),{...latest,baseUpdatedAt:remoteVersion});
     showStoredStatus();return true;
-   }catch(error){showStoredStatus();if(error.status===401||error.code==='PGRST301')void lock('authError');return false;}
+   }catch(error){
+    if(!ready||epoch!==loadingEpoch||user?.id!==id)return false;
+    if(error.status===401||error.code==='PGRST301'){void lock('authError');return false;}
+    if(navigator.onLine===false||localSaveNotice||syncConflict)showStoredStatus();
+    else{
+     const timedOut=error.name==='AbortError'||error.message==='通信がタイムアウトしました。';
+     const status=timedOut?'未同期（時間切れ）':'未同期（通信失敗）';
+     setSyncStatus(status+'\nタップで再試行',{retry:true,detail:'クラウドへの保存を確認できませんでした。記録は端末に保存済みです。接続を確認して押すと再試行します。'});
+    }
+    return false;
+   }
   };
   writes=writes.then(send,send);return writes;
  }

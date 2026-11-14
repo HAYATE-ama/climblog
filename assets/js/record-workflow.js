@@ -43,9 +43,6 @@ export function installRecordWorkflow({recordApi,states,panels,setControl,snapsh
     for(const id of ['kind','trainingMode','maxType','liftMeasurement','gymName','outdoorDiscipline','gradeSystem'])if(id in values){setControl(id,values[id]);$('#'+id).dispatchEvent(new Event('change',{bubbles:true}));}
     for(const [id,value] of Object.entries(values))if(!['kind','trainingMode','gymName','outdoorDiscipline','gradeSystem'].includes(id))setControl(id,value);
     if(values.kind==='outdoor'){
-      if(values.outdoorGrade==='' && ![...$('#outdoorGrade').options].some(option=>option.value==='')){
-        $('#outdoorGrade').add(new Option('未設定',''));$('#outdoorGrade').value='';
-      }
       $('#outdoorResult').dispatchEvent(new Event('change',{bubbles:true}));
     }
     syncGrade();updateOutcome();updateTrainingWeightInfo();window.dispatchEvent(new Event("climblog:formRestored"));

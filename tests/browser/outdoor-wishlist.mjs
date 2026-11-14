@@ -91,9 +91,9 @@ try{
   await pending.getByRole('button',{name:seed.routeName+'を記録する'}).click();
   assert.equal(await page.locator('#routeName').inputValue(),seed.routeName);assert.equal(await page.locator('#outdoorGrade').inputValue(),'三段');
   assert.equal(await page.locator('#outdoorResult').inputValue(),'');assert.equal(await page.locator('#outdoorMemo').inputValue(),'');
-  await page.locator('#save').click();assert.match(alerts.pop(),/結果/);await page.locator('#outdoorResult').selectOption('attempt');await page.locator('#outdoorMemo').fill('新しいムーブ');await page.locator('#save').click();
+  await page.locator('#save').click();assert.match(alerts.pop(),/結果/);await page.locator('#outdoorAttempt').click();await page.locator('#outdoorMemo').fill('新しいムーブ');await page.locator('#save').click();
   await wish.waitFor({state:'visible'});assert.equal(await pending.locator('.wishRow').count(),2);
-  await pending.getByRole('button',{name:seed.routeName+'を記録する'}).click();await page.locator('#outdoorResult').selectOption('send');await page.locator('#save').click();
+  await pending.getByRole('button',{name:seed.routeName+'を記録する'}).click();await page.locator('#outdoorSend').click();await page.locator('#save').click();
   await wish.waitFor({state:'visible'});assert.equal(await pending.locator('.wishRow').count(),1);assert.equal(await wish.locator('[data-finished-rows] .wishRow').count(),1);
   await wish.locator('[data-crag]').selectOption('第二岩場');await pending.locator('.wishLog').click();assert.equal(await page.locator('#outdoorMemo').inputValue(),'別課題の下書き');await page.locator('#cancel').click();
   await wish.locator('[data-crag]').selectOption(seed.cragName);await pending.locator('.wishLog').click();
@@ -116,13 +116,13 @@ try{
   assert.equal(await pending.locator('.wishRoute small').innerText(),'初/二段');
   await pending.locator('.wishLog').click();
   assert.equal(await page.locator('#outdoorGrade').inputValue(),'初/二段');
-  await page.locator('#outdoorResult').selectOption('send');
+  await page.locator('#outdoorSend').click();
   await page.locator('#save').click();
   await wish.waitFor({state:'visible'});
   const logged=await page.evaluate(()=>window.climbLogStateApi.get().records.find(r=>r.routeName==='中間段位の課題'));
   assert.equal(logged.outdoorGrade,'初/二段');
   await wish.locator('[data-close]').click();
-  await page.getByRole('button',{name:'保存の案内を閉じる'}).click();
+  assert.ok(await page.locator('header #recordFeedback').isVisible());
   await checkLongList(page,width,launcher,wish);
   assert.deepEqual(alerts,[]);assert.deepEqual(errors,[]);report.push({width,theme,listToSave:true,drafts:true,completion:true,dialogPosition:true,scrollRestored:true});await context.close();
  }

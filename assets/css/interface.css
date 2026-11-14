@@ -59,10 +59,20 @@ body[data-theme="light"] .trainingMetrics>div{background:#f4f1f8;color:#202b3b}b
 .recentCrags small{flex-basis:100%;font-size:11px;color:var(--muted)}
 .recentCrags button{min-height:44px;max-width:100%;padding:7px 10px;background:var(--panel2);border:1px solid var(--line);border-radius:9px;color:var(--text);font-size:13px;overflow-wrap:anywhere;text-align:left}
 .recentCrags button[aria-pressed="true"]{border-color:var(--orange)}
-.recordFeedback{position:fixed;bottom:max(16px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);z-index:4;display:flex;align-items:center;gap:10px;width:min(520px,calc(100% - 32px));padding:12px 14px;background:var(--panel);color:var(--text);border:1px solid var(--line);border-left:3px solid var(--orange);border-radius:12px;box-shadow:0 8px 30px #0003}
-.recordFeedback p{margin:0;flex:1;font-size:13px;line-height:1.7;overflow-wrap:anywhere}
-.recordFeedback button{flex:none;min-height:44px;min-width:44px;font-size:20px;border-radius:8px;background:var(--panel2)}
-.recordFeedback button:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
+.outdoorOutcome>span{display:block;margin-bottom:6px;color:var(--muted)}
+.outdoorOutcome>div{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.outdoorOutcome button{min-height:44px;padding:8px;border:1px solid var(--line);border-radius:10px;background:var(--panel2);color:var(--text);font:inherit;font-weight:600}
+.outdoorOutcome button[aria-pressed="true"]{border:2px solid var(--orange);background:var(--panel);color:var(--text)}
+.outdoorOutcome button:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
+.recordFeedback{display:flex;align-items:center;gap:3px;min-width:0;margin:0 8px 0 auto;color:var(--text)}
+.recordFeedback[hidden]{display:none}
+.recordFeedback p{margin:0;font-size:13px;line-height:1.35;overflow-wrap:anywhere}
+.recordFeedback button{min-height:44px;min-width:44px;font-size:18px;border-radius:8px;color:var(--muted)}
+.recordFeedback button:focus-visible{outline:2px solid var(--orange);outline-offset:-2px}
+@media(max-width:640px){
+  #appRoot>header:has(.recordFeedback:not([hidden])) .brand{display:none}
+  .recordFeedback{margin:0 4px 0 0}
+}
 
 #appRoot>header,body[data-theme="light"] #appRoot>header{background:var(--bg)}
 
