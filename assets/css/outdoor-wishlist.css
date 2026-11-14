@@ -2,16 +2,30 @@
 #outdoorWishlist [hidden], #recordWishAction[hidden] { display:none!important; }
 .wishEntry span:first-child {color:var(--orange);font-size:20px;}
 .wishEntry span:last-child {margin-left:auto;color:var(--muted);}
-#outdoorWishlist {box-sizing:border-box;width:min(490px,calc(100% - 24px));max-height:85dvh;padding:0;border:1px solid var(--line);border-radius:16px;background:var(--panel);color:var(--text);overscroll-behavior:contain;}
+html:has(#outdoorWishlist[open]) {overflow:hidden;}
+#outdoorWishlist {
+  --wish-top:max(12px,env(safe-area-inset-top));
+  --wish-bottom:max(12px,env(safe-area-inset-bottom));
+  position:fixed;
+  inset:var(--wish-top) max(12px,env(safe-area-inset-right)) var(--wish-bottom) max(12px,env(safe-area-inset-left));
+  margin:auto;
+  box-sizing:border-box;
+  width:min(490px,calc(100% - max(12px,env(safe-area-inset-left)) - max(12px,env(safe-area-inset-right))));
+  max-height:min(85dvh,calc(100dvh - var(--wish-top) - var(--wish-bottom)));
+  overflow:hidden;
+  padding:0;border:1px solid var(--line);border-radius:16px;background:var(--panel);color:var(--text);overscroll-behavior:contain;}
+#outdoorWishlist[open] {display:flex;flex-direction:column;}
 #outdoorWishlist::backdrop {background:#0008;}
-#outdoorWishlist .wishHead {position:sticky;top:0;z-index:1;display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--panel);}
+#outdoorWishlist .wishHead {flex:none;display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--panel);}
 #outdoorWishlist .wishHead h2 {flex:1;margin:0;font-size:19px;}
 #outdoorWishlist button {min-width:44px;min-height:44px;padding:6px 10px;border:0;border-radius:8px;background:transparent;color:inherit;font:inherit;cursor:pointer;}
 #outdoorWishlist button:focus-visible,#openOutdoorWishlist:focus-visible {outline:2px solid var(--orange);outline-offset:-2px;}
 #outdoorWishlist .wishHead button {background:var(--panel2);font-size:14px;}
 #outdoorWishlist .wishHead [data-close] {font-size:22px;line-height:1;}
-#outdoorWishlist .wishBody {padding:14px 16px max(16px,env(safe-area-inset-bottom));}
-#outdoorWishlist .wishToolbar {display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:12px;margin-bottom:12px;}
+#outdoorWishlist .wishBody {display:flex;flex-direction:column;min-height:0;padding:14px 16px 16px;overflow-y:auto;overscroll-behavior:contain;}
+#outdoorWishlist [data-screen="list"] {display:flex;flex-direction:column;min-height:0;}
+#outdoorWishlist .wishRoutes {min-height:0;overflow-y:auto;overscroll-behavior:contain;}
+#outdoorWishlist .wishToolbar {flex:none;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:12px;margin-bottom:12px;}
 #outdoorWishlist label {display:grid;gap:5px;min-width:0;font-size:13px;color:var(--muted);}
 #outdoorWishlist select,#outdoorWishlist input {box-sizing:border-box;display:block;width:100%;min-width:0;min-height:44px;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel2);color:var(--text);font:inherit;font-size:16px;}
 #outdoorWishlist .wishAdd,#outdoorWishlist .wishLog {color:var(--text);background:var(--panel2);border:1px solid var(--line);font-size:13px;font-weight:600;}
@@ -37,4 +51,6 @@
 #outdoorWishlist .wishStatus {margin:10px 0 0;}
 #outdoorWishlist .wishStatus:empty {margin:0;}
 #recordWishAction {width:100%;margin-top:8px;}
-@media(max-width:640px){#outdoorWishlist {margin:auto auto 0;width:100%;max-height:88dvh;border-radius:18px 18px 0 0;}}
+@media(max-width:640px) {
+  #outdoorWishlist {--wish-bottom:max(10dvh,env(safe-area-inset-bottom),12px);}
+}

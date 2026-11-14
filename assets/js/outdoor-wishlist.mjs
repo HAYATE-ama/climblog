@@ -17,8 +17,10 @@ export function installOutdoorWishlist(){
     <div class="wishBody">
       <section data-screen="list">
         <div class="wishToolbar"><label>岩場<select data-crag></select></label><button type="button" class="wishAdd" data-add>＋ 追加</button></div>
-        <div data-active></div>
-        <details data-finished><summary></summary><div data-finished-rows></div></details>
+        <div class="wishRoutes">
+          <div data-active></div>
+          <details data-finished><summary></summary><div data-finished-rows></div></details>
+        </div>
       </section>
       <form data-screen="add" hidden>
         <label>岩場<input name="cragName" list="wishCrags" required maxlength="120" placeholder="例：西の河原"></label><datalist id="wishCrags"></datalist>
@@ -42,14 +44,16 @@ export function installOutdoorWishlist(){
   document.body.append(dialog);
   const get=selector=>dialog.querySelector(selector);
   const form=get('form'),fields=form.elements,filter=get('[data-crag]'),status=get('.wishStatus');
-  let screen='list',selectedId=null,returnId=null,locked=false;
+  const body=get('.wishBody'),routes=get('.wishRoutes');
+  let screen='list',selectedId=null,returnId=null,locked=false,listScrollTop=0;
   const facts=()=>wishlistEntries(wishes(),records.getRecords());
   function show(next){
+    if(screen==='list'&&next!=='list')listScrollTop=routes.scrollTop;
     screen=next;
     for(const pane of dialog.querySelectorAll('[data-screen]'))pane.hidden=pane.dataset.screen!==next;
     get('#wishTitle').textContent={list:'登りたい課題',add:'課題を追加',detail:'課題の詳細'}[next];
     get('[data-back]').hidden=next==='list';status.textContent='';
-    dialog.scrollTop=0;
+    body.scrollTop=0;
   }
   function makeRow({wish}){
     const row=document.createElement('div');row.className='wishRow';row.dataset.wishId=wish.id;
@@ -84,11 +88,15 @@ export function installOutdoorWishlist(){
   function focusWish(id,action='detail'){
     const row=[...dialog.querySelectorAll('.wishRow')].find(el=>el.dataset.wishId===id);
     const button=row?.querySelector('[data-action="'+action+'"]');
-    (button?.getClientRects().length?button:get('[data-add]')).focus({preventScroll:true});
+    if(button?.getClientRects().length){
+      button.focus({preventScroll:true});
+      button.scrollIntoView({block:'nearest'});
+    }else get('[data-add]').focus({preventScroll:true});
   }
   function openList(){
     drawList();show('list');
     if(!dialog.open)dialog.showModal();
+    routes.scrollTop=listScrollTop;
   }
   function detail(fact){
     selectedId=fact.wish.id;const {wish,latest}=fact;
@@ -100,6 +108,7 @@ export function installOutdoorWishlist(){
   }
   function beginRecord(id){
     if(!wishes().some(w=>w.id===id))return;
+    if(screen==='list')listScrollTop=routes.scrollTop;
     dialog.close();returnId=id;
     records.open('outdoor',null,null,id);
   }
@@ -124,14 +133,18 @@ export function installOutdoorWishlist(){
     fields.gradeSystem.replaceChildren(...records.gradeSystemsFor(fields.discipline.value).map(v=>new Option(v,v)));setGrades();
   }
   function beginAdd(){
-    form.reset();form.querySelector('details').open=false;fields.cragName.value=filter.value;
+    selectedId=null;form.reset();form.querySelector('details').open=false;fields.cragName.value=filter.value;
     const crags=new Set(wishes().map(w=>w.cragName));
     for(const r of records.getRecords())if(r.kind==='outdoor'&&(r.cragName||r.place))crags.add(r.cragName||r.place);
     crags.delete('未設定');get('#wishCrags').replaceChildren(...[...crags].sort().map(c=>new Option(c,c)));
     setSystems();show('add');fields.cragName.focus();
   }
-  function back(){show('list');drawList();focusWish(selectedId);}
-  entry.onclick=()=>{selectedId=null;openList();};
+  function back(){
+    show('list');drawList();
+    routes.scrollTop=listScrollTop;
+    focusWish(selectedId);
+  }
+  entry.onclick=()=>{selectedId=null;listScrollTop=0;openList();};
   dialog.addEventListener('close',()=>{
     if(!locked&&!returnId&&!dialog.open&&entry.getClientRects().length)entry.focus({preventScroll:true});
   });

@@ -9,6 +9,47 @@ const resultDir=fs.mkdtempSync(path.join(os.tmpdir(),'climblog-dialog-'));consol
 const bootstrap=`window.climbLogAccountId='record-dialog-test';document.querySelector('#authScreen').hidden=true;document.querySelector('#authScreen').style.display='none';document.querySelector('#appRoot').hidden=false;await import('/assets/js/app.js');await import('/assets/js/enhancements.js');window.__appReady=true;`;
 const server=http.createServer((req,res)=>{const url=new URL(req.url,'http://localhost');if(url.pathname==='/test.html'){res.setHeader('Content-Type','text/html; charset=utf-8');res.end(fs.readFileSync(path.join(root,'index.html'),'utf8').replace('<script src="./config.js"></script><script type="module" src="./assets/js/cloud.js"></script>',`<script type="module">${bootstrap}</script>`));return;}const file=path.resolve(root,'.'+url.pathname);if(!file.startsWith(root+path.sep)||!fs.existsSync(file)||!['.js','.mjs','.css','.svg','.png','.webmanifest'].includes(path.extname(file))){res.writeHead(404);res.end();return;}res.setHeader('Content-Type',/\.m?js$/.test(file)?'text/javascript; charset=utf-8':file.endsWith('.css')?'text/css; charset=utf-8':'text/plain');res.end(fs.readFileSync(file));});
 await new Promise(r=>server.listen(0,'127.0.0.1',r));const origin=`http://127.0.0.1:${server.address().port}`;let browser;const report=[];
+async function checkWishlistPosition(page,width,wish){
+  const {height}=page.viewportSize();
+  const compact=await wish.boundingBox();
+  const center=compact.y+compact.height/2;
+  assert.ok(compact.height<height/2,'A short list should fit its contents');
+  assert.ok(width<=640 ? center<height/2-12 && center>height/3 : Math.abs(center-height/2)<2,'Dialog should open near the center');
+}
+async function checkLongList(page,width,launcher,wish){
+  await page.setViewportSize({width,height:568});
+  await page.evaluate(()=>{
+    const sample=window.climbLogStateApi.get().outdoorWishlist[0];
+    const outdoorWishlist=Array.from({length:40},(_,i)=>({...sample,id:'long-'+i,cragName:'検証岩場',routeName:'テスト課題'+String(i).padStart(2,'0'),starred:false}));
+    window.climbLogStateApi.apply({outdoorWishlist});
+  });
+  await launcher.scrollIntoViewIfNeeded();
+  const homeScroll=await page.evaluate(()=>window.scrollY);
+  assert.ok(homeScroll>0,'Home is scrolled before opening');
+  await launcher.click();
+  const header=wish.locator('.wishHead'),routes=wish.locator('.wishRoutes');
+  const title=await header.boundingBox(),toolbar=await wish.locator('.wishToolbar').boundingBox();
+  const rect=await wish.boundingBox();
+  assert.ok(rect.y>=10&&rect.y+rect.height<=568-10);
+  assert.equal(await routes.evaluate(el=>el.scrollTop),0);
+  const item=routes.locator('[data-wish-id="long-25"] .wishRoute');
+  await item.scrollIntoViewIfNeeded();
+  const top=await routes.evaluate(el=>el.scrollTop);
+  assert.ok(top>0);
+  assert.deepEqual(await header.boundingBox(),title);
+  assert.deepEqual(await wish.locator('.wishToolbar').boundingBox(),toolbar);
+  await item.click();
+  assert.equal(await wish.locator('[data-name]').innerText(),'テスト課題25');
+  await wish.locator('[data-back]').click();
+  assert.equal(await routes.evaluate(el=>el.scrollTop),top);
+  assert.ok(await item.evaluate(el=>el===document.activeElement));
+  await wish.locator('[data-close]').click();
+  assert.equal(await page.evaluate(()=>window.scrollY),homeScroll);
+  await launcher.click();
+  assert.equal(await routes.evaluate(el=>el.scrollTop),0);
+  await page.keyboard.press('Escape');
+  await wish.waitFor({state:'hidden'});
+}
 try{
  browser=await chromium.launch({executablePath:process.env.CLIMBLOG_BROWSER||'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true});
  for(const [width,theme] of [[320,'light'],[390,'dark'],[1280,'light'],[1280,'dark']]){
@@ -31,6 +72,7 @@ try{
   await page.locator('#homeTab').click();
   await launcher.click();const wish=page.locator('#outdoorWishlist'),pending=wish.locator('[data-active]');
   const view=wish.locator('[data-screen=detail]'),form=wish.locator('[data-screen=add]');
+  await checkWishlistPosition(page,width,wish);
   await pending.locator('.wishRoute').click();assert.equal(await view.locator('[data-memo]').innerText(),seed.memo);
   await wish.locator('[data-back]').click();await pending.locator('.wishStar').click();assert.equal(await pending.locator('.wishStar').getAttribute('aria-pressed'),'true');
   await wish.locator('[data-add]').click();await form.locator('[name=cragName]').fill(seed.cragName);await form.locator('[name=routeName]').fill('未登課題');
@@ -65,7 +107,8 @@ try{
   await page.waitForFunction(()=>document.activeElement===document.getElementById('openOutdoorWishlist'));
   assert.ok(await launcher.isVisible());await page.reload();await page.waitForFunction(()=>window.__appReady);
   assert.deepEqual(await page.evaluate(()=>window.climbLogStateApi.get().outdoorWishlist),state.outdoorWishlist);
-  assert.deepEqual(alerts,[]);assert.deepEqual(errors,[]);report.push({width,theme,listToSave:true,drafts:true,completion:true});await context.close();
+  await checkLongList(page,width,launcher,wish);
+  assert.deepEqual(alerts,[]);assert.deepEqual(errors,[]);report.push({width,theme,listToSave:true,drafts:true,completion:true,dialogPosition:true,scrollRestored:true});await context.close();
  }
  console.log(JSON.stringify(report));
 }finally{if(browser)await browser.close();await new Promise(r=>server.close(r));}
