@@ -99,10 +99,9 @@ export function installOutdoorWishlist(){
     show('detail');get('[data-back]').focus({preventScroll:true});
   }
   function beginRecord(id){
-    // Read the selected calendar date at the moment the user opens the existing editor.
     if(!wishes().some(w=>w.id===id))return;
     dialog.close();returnId=id;
-    records.open('outdoor',null,window.climbLogGetSelectedDate(),id);
+    records.open('outdoor',null,null,id);
   }
   function returnFromRecord(saved){
     if(!returnId)return;
@@ -133,6 +132,9 @@ export function installOutdoorWishlist(){
   }
   function back(){show('list');drawList();focusWish(selectedId);}
   entry.onclick=()=>{selectedId=null;openList();};
+  dialog.addEventListener('close',()=>{
+    if(!locked&&!returnId&&!dialog.open&&entry.getClientRects().length)entry.focus({preventScroll:true});
+  });
   get('[data-close]').onclick=()=>dialog.close();get('[data-back]').onclick=back;
   get('[data-add]').onclick=beginAdd;
   filter.onchange=()=>{drawList();status.textContent='';};

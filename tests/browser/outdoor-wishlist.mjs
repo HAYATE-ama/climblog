@@ -17,13 +17,19 @@ try{
   const page=await context.newPage(),alerts=[],errors=[];
   page.on('dialog',async d=>{alerts.push(d.message());await d.accept();});page.on('pageerror',e=>errors.push(e.message));
   await page.goto(origin+'/test.html');await page.waitForFunction(()=>window.__appReady);page.setDefaultTimeout(7000);
+  const launcher=page.locator('#homeView').getByRole('button',{name:'登りたい課題リスト'});
+  assert.ok(await launcher.isVisible());
+  const scene=await page.locator('.landscapeHome').boundingBox(),entry=await launcher.boundingBox();
+  assert.ok(entry.y>=scene.y+scene.height-1&&entry.x>=0&&entry.x+entry.width<=width+1);
   await page.locator('#calendarTab').click();
+  assert.ok(await launcher.isHidden());
   const seed={id:'failed-outdoor',kind:'outdoor',date:'2026-10-31',cragName:'テスト岩場',routeName:'サンプル課題名の長いルート',place:'テスト岩場',discipline:'boulder',outdoorGrade:'三段',grade:'三段',result:'attempt',tries:4,memo:'足位置を確認する'};
   await page.evaluate(({row,theme})=>window.climbLogStateApi.apply({records:[row],preferences:{theme}}),{row:seed,theme});
   await page.evaluate(()=>window.climbLogRecordViewer.open('failed-outdoor'));
   await page.locator('#recordWishAction').click();assert.ok(await page.locator('#recordWishAction').isDisabled());
-  await page.locator('[data-viewer-action=close]').click();await page.locator('#filters [data-kind=outdoor]').click();
-  await page.locator('#openOutdoorWishlist').click();const wish=page.locator('#outdoorWishlist'),pending=wish.locator('[data-active]');
+  await page.locator('[data-viewer-action=close]').click();await page.evaluate(()=>window.climbLogRecordApi.showDate('2020-02-01'));
+  await page.locator('#homeTab').click();
+  await launcher.click();const wish=page.locator('#outdoorWishlist'),pending=wish.locator('[data-active]');
   const view=wish.locator('[data-screen=detail]'),form=wish.locator('[data-screen=add]');
   await pending.locator('.wishRoute').click();assert.equal(await view.locator('[data-memo]').innerText(),seed.memo);
   await wish.locator('[data-back]').click();await pending.locator('.wishStar').click();assert.equal(await pending.locator('.wishStar').getAttribute('aria-pressed'),'true');
@@ -52,8 +58,12 @@ try{
   assert.equal(await page.locator('#outdoorGrade').inputValue(),'');assert.equal(await page.locator('#outdoorGrade option:checked').innerText(),'未設定');
   await page.locator('#cancel').click();await pending.locator('.wishRoute').click();await view.locator('[data-remove]').click();
   assert.match(alerts.pop(),/リストから外しますか/);
+  const today=await page.evaluate(()=>{const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');});
   const state=await page.evaluate(()=>window.climbLogStateApi.get());assert.equal(state.records.length,3);assert.equal(state.outdoorWishlist.length,2);
-  await wish.locator('[data-close]').click();await page.reload();await page.waitForFunction(()=>window.__appReady);
+  assert.ok(state.records.filter(r=>r.id!==seed.id).every(r=>r.date===today));
+  await wish.locator('[data-close]').click();
+  await page.waitForFunction(()=>document.activeElement===document.getElementById('openOutdoorWishlist'));
+  assert.ok(await launcher.isVisible());await page.reload();await page.waitForFunction(()=>window.__appReady);
   assert.deepEqual(await page.evaluate(()=>window.climbLogStateApi.get().outdoorWishlist),state.outdoorWishlist);
   assert.deepEqual(alerts,[]);assert.deepEqual(errors,[]);report.push({width,theme,listToSave:true,drafts:true,completion:true});await context.close();
  }

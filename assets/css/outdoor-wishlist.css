@@ -1,5 +1,5 @@
-.wishEntry { display:flex; align-items:center; gap:9px; width:100%; margin:4px 0 12px; padding:9px 12px; min-height:44px; border:1px solid var(--line); border-radius:10px; background:var(--panel2); color:var(--text); font:inherit; font-weight:600; text-align:left; cursor:pointer; }
-.wishEntry[hidden], #outdoorWishlist [hidden], #recordWishAction[hidden] { display:none!important; }
+.wishEntry { display:flex; align-items:center; gap:9px; box-sizing:border-box; width:min(100%,880px); margin:0 auto 20px; padding:12px 16px; min-height:48px; border:1px solid var(--line); border-radius:10px; background:var(--panel2); color:var(--text); font:inherit; font-weight:600; text-align:left; cursor:pointer; }
+#outdoorWishlist [hidden], #recordWishAction[hidden] { display:none!important; }
 .wishEntry span:first-child {color:var(--orange);font-size:20px;}
 .wishEntry span:last-child {margin-left:auto;color:var(--muted);}
 #outdoorWishlist {box-sizing:border-box;width:min(490px,calc(100% - 24px));max-height:85dvh;padding:0;border:1px solid var(--line);border-radius:16px;background:var(--panel);color:var(--text);overscroll-behavior:contain;}

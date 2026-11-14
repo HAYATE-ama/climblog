@@ -14,9 +14,7 @@ try{
   const remoteBefore=await page.evaluate(()=>localStorage.getItem('__server:alice')),attemptsBefore=await page.evaluate(()=>Number(localStorage.getItem('__syncAttempts')||0));
   await context.setOffline(true);await page.waitForFunction(()=>navigator.onLine===false);await page.clock.runFor(10);assert.match(await page.locator('#syncState').innerText(),/オフライン/);
   // A wishlist entry shares the authenticated offline queue with ordinary records.
-  await page.locator('#calendarTab').click();
-  await page.locator('#filters [data-kind=outdoor]').click();
-  await page.locator('#openOutdoorWishlist').click();
+  await page.locator('#homeView').getByRole('button',{name:'登りたい課題リスト'}).click();
   const wish=page.locator('#outdoorWishlist');
   await wish.locator('[data-add]').click();
   await wish.locator('[name=cragName]').fill('検証用の岩場');
