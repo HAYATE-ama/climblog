@@ -19,6 +19,7 @@ export function installRecordWorkflow({recordApi,states,panels,setControl,snapsh
   let target=null,baseline='',suppress=false;
   const readForm=()=>Object.fromEntries(formIds.map(id=>[id,$('#'+id).value]));
   const fingerprint=form=>JSON.stringify(form);
+  recordApi.getDraftKey=()=>target?.key;
   recordApi.getEditDate=()=>$('#recordDate').value;
   // A date-only correction must preserve saved actuals, measurement conditions and bodyweight.
   recordApi.isDateOnlyEdit=()=>Boolean(target?.recordId&&baseline&&fingerprint({...readForm(),recordDate:JSON.parse(baseline).recordDate})===baseline);
@@ -41,6 +42,12 @@ export function installRecordWorkflow({recordApi,states,panels,setControl,snapsh
     if('outdoorAscentType' in values&&values.outdoorAscentType!=='repeat')values.outdoorAscentType='new';
     for(const id of ['kind','trainingMode','maxType','liftMeasurement','gymName','outdoorDiscipline','gradeSystem'])if(id in values){setControl(id,values[id]);$('#'+id).dispatchEvent(new Event('change',{bubbles:true}));}
     for(const [id,value] of Object.entries(values))if(!['kind','trainingMode','gymName','outdoorDiscipline','gradeSystem'].includes(id))setControl(id,value);
+    if(values.kind==='outdoor'){
+      if(values.outdoorGrade==='' && ![...$('#outdoorGrade').options].some(option=>option.value==='')){
+        $('#outdoorGrade').add(new Option('未設定',''));$('#outdoorGrade').value='';
+      }
+      $('#outdoorResult').dispatchEvent(new Event('change',{bubbles:true}));
+    }
     syncGrade();updateOutcome();updateTrainingWeightInfo();window.dispatchEvent(new Event("climblog:formRestored"));
   }
   function restore(draft){
@@ -56,8 +63,9 @@ export function installRecordWorkflow({recordApi,states,panels,setControl,snapsh
   }
   function previous(){return findPreviousRecords(recordApi.getRecords(),{kind:$('#kind').value,date:window.climbLogGetSelectedDate(),gymName:$('#gymName').value,trainingMode:$('#trainingMode').value,maxType:$('#maxType').value,liftHand:$('#liftHand').value});}
   function updateCopy(){const kind=$('#kind').value,button=$('#copyPreviousRecord'),available=previous().length>0;button.hidden=kind==='outdoor'||recordApi.isEditing();button.disabled=!available;button.textContent=available?'前回の記録をコピー':'前回の記録なし';$('#discardCurrentInput').disabled=!target;}
-  window.addEventListener('climblog:recordOpened',()=>{
-    suppress=true;const existing=recordApi.getEditingRecord(),date=window.climbLogGetSelectedDate();target={key:existing?'edit:'+existing.id:'new:'+date,date,recordId:existing?.id||null};
+  window.addEventListener('climblog:recordOpened',event=>{
+    suppress=true;const existing=recordApi.getEditingRecord(),date=window.climbLogGetSelectedDate();const wishId=event.detail?.wishId||null;
+    target={key:existing?'edit:'+existing.id:wishId?'wish:'+wishId+':'+date:'new:'+date,date,recordId:existing?.id||null,wishId};
     $('#recordInputDate').textContent=`${date} の記録`;$('#recordInputDate').hidden=Boolean(existing);$('#recordDateField').hidden=!existing;$('#recordDate').value=existing?.date||date;
     $('#cancel').textContent='閉じる';$('#cancel').setAttribute('aria-label','下書きを保存して閉じる');
     baseline=fingerprint(readForm());suppress=false;
@@ -72,9 +80,9 @@ window.addEventListener('climblog:recordSaved',event=>{try{store.remove(event.de
   $('#cancel').addEventListener('click',persist,{capture:true});
   window.addEventListener('pagehide',persist);window.addEventListener('climblog:authLock',persist);
   document.addEventListener('visibilitychange',()=>{if(document.hidden)persist();});
-  $('#resumeInputDraft').addEventListener('click',()=>{const saved=store.get($('#draftResumeSelect').value);if(saved&&!recordApi.open(saved.form.kind,saved.recordId,saved.date))alert('編集対象の記録は削除されています。下書きを確認して破棄してください。');});
+  $('#resumeInputDraft').addEventListener('click',()=>{const saved=store.get($('#draftResumeSelect').value);if(saved&&!recordApi.open(saved.form.kind,saved.recordId,saved.date,saved.wishId))alert('編集対象の記録は削除されています。下書きを確認して破棄してください。');});
   $('#removeInputDraft').addEventListener('click',()=>{const key=$('#draftResumeSelect').value;if(key&&confirm('この端末の下書きを破棄しますか？保存済みの記録は削除されません。')){store.remove(key);renderBanner();}});
-  $('#discardCurrentInput').addEventListener('click',()=>{if(target&&confirm('入力中の下書きを破棄しますか？保存済みの記録は削除されません。')){const current={...target};store.remove(current.key);recordApi.open($('#kind').value,current.recordId,current.date);renderBanner();}});
+  $('#discardCurrentInput').addEventListener('click',()=>{if(target&&confirm('入力中の下書きを破棄しますか？保存済みの記録は削除されません。')){const current={...target};store.remove(current.key);recordApi.open($('#kind').value,current.recordId,current.date,current.wishId);renderBanner();}});
   $('#copyPreviousRecord').addEventListener('click',()=>{
     const kind=$('#kind').value,rows=previous(),state=states[kind];if(!rows.length)return;
     if(state?.editingId){alert('編集中の項目を更新するか、編集を取り消してください。');return;}

@@ -29,7 +29,7 @@ function normalizeTrainingEdit(before,values,entry){
 }
 const kindSpecificFields={
   gym:['gymName','gymOutcome','gradeLabelSnapshot','colorSnapshot'],
-  outdoor:['cragName','areaName','routeName','discipline','gradeSystem','outdoorGrade','result','ascentType','attemptsRange','weather','rockCondition','partners','projectId'],
+  outdoor:['outdoorWishId','cragName','areaName','routeName','discipline','gradeSystem','outdoorGrade','result','ascentType','attemptsRange','weather','rockCondition','partners','projectId'],
   training:[...courseFields,'trainingMode','trainingPlace','exerciseName','catalogExerciseId','exerciseSide','exerciseRegistryVersion','sets','reps','durationMinutes','loadKg','loadRecorded','rpe','loadMethod','setDetails','sessionSetResults','fingerConditions','gripType','edgeDepthMm','holdSeconds','maxType','liftHand','liftMeasurement','addedWeightKg','totalLoadKg','pairGroupId','_pairedMeasurements','workoutSessionId','workoutTitle','workoutStartedAt','workoutFinishedAt','feedbackScope','aiProposalId','aiPlanDate','aiGeneratedAt','aiPlanModified']
 };
 function normalizeRecordEdit(before,values,entry){

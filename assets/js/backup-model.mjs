@@ -1,3 +1,5 @@
+import {validateWish} from './outdoor-wishlist-model.mjs';
+import {outdoorProblemKey} from './outdoor-season.mjs';
 import {validateOutdoorSeason} from './outdoor-season.mjs';
 import {normalizeCourse,normalizeCourseStep,normalizeBefore,normalizeAfter,normalizeObservation} from './day-course-data.mjs';
 import {validateOutdoorSettings} from './outdoor-settings-model.mjs';
@@ -22,12 +24,18 @@ function validateTrainingArrays(row){
 export function validateBackup(value){
  if(!value||typeof value!=='object'||!Array.isArray(value.records))throw new Error('ClimbLogのJSONバックアップを選んでください。');
  const walk=(v,depth=0)=>{if(depth>30)throw new Error('データの階層が深すぎます。');if(v&&typeof v==='object')for(const [k,item] of Object.entries(v)){if(['__proto__','constructor','prototype'].includes(k))throw new Error('安全でない項目を含みます。');walk(item,depth+1);}};walk(value);
- for(const key of ['records','gyms','bodyWeights','customExercises','trainingPresets','trainingMenus','dailyJournals','recordHistory','recycleBin','workoutReceipts'])if(value[key]!=null&&!Array.isArray(value[key]))throw new Error(key+'の形式が不正です。');
+ for(const key of ['records','gyms','bodyWeights','customExercises','trainingPresets','trainingMenus','dailyJournals','recordHistory','recycleBin','workoutReceipts','outdoorWishlist'])if(value[key]!=null&&!Array.isArray(value[key]))throw new Error(key+'の形式が不正です。');
  const dateValid=v=>{if(typeof v!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(v))return false;const d=new Date(v+'T00:00:00Z');return !Number.isNaN(+d)&&d.toISOString().slice(0,10)===v;};
  const idValid=v=>typeof v==='string'&&/^[a-z0-9_:.-]{1,160}$/i.test(v);
  const recordValid=row=>{if(row?.ascentType!=null&&!['new','repeat'].includes(row.ascentType))throw new Error('完登区分が不正です。');if(!row||!idValid(row.id)||!dateValid(row.date)||!['gym','outdoor','training'].includes(row.kind))throw new Error('記録のID・日付・活動タイプを確認してください。');validateNumericTypes(row,recordNumericFields,'記録');for(const key of ['place','gymName','cragName','areaName','routeName','grade','exerciseName','summary','memo'])if(row[key]!=null&&typeof row[key]!=='string')throw new Error('記録の文字列項目が不正です。');for(const key of ['sets','reps','durationMinutes','loadKg','addedWeightKg','totalLoadKg','sends','tries'])if(row[key]!=null&&(!Number.isFinite(Number(row[key]))||Number(row[key])<0))throw new Error('記録の数値項目が不正です。');validateTrainingArrays(row);};
  for(const row of value.records)recordValid(row);
- for(const [key,list] of Object.entries(value))if(Array.isArray(list)&&['records','customExercises','trainingPresets','trainingMenus','recordHistory','recycleBin','workoutReceipts'].includes(key)){const seen=new Set();for(const row of list){if(!row||!idValid(row.id)||seen.has(row.id))throw new Error(key+'に不正または重複したIDがあります。');seen.add(row.id);}}
+ for(const [key,list] of Object.entries(value))if(Array.isArray(list)&&['records','customExercises','trainingPresets','trainingMenus','recordHistory','recycleBin','workoutReceipts','outdoorWishlist'].includes(key)){const seen=new Set();for(const row of list){if(!row||!idValid(row.id)||seen.has(row.id))throw new Error(key+'に不正または重複したIDがあります。');seen.add(row.id);}}
+ const wishKeys=new Set();
+ for(const wish of value.outdoorWishlist||[]){
+  validateWish(wish);const key=outdoorProblemKey(wish);
+  if(wishKeys.has(key))throw new Error('登りたい課題が重複しています。');
+  wishKeys.add(key);
+ }
  for(const row of value.gyms||[])if(typeof row?.name!=='string'||!row.name.trim()||!Array.isArray(row.grades)||!row.grades.length||row.grades.some(b=>!Array.isArray(b)||typeof b[0]!=='string'||!/^#[0-9a-f]{6}$/i.test(b[1])))throw new Error('ジムの色・グレードの形式が不正です。');
  for(const row of value.bodyWeights||[]){if(row)validateNumericTypes(row,['kg'],'体重履歴');if(!dateValid(row?.date)||!(Number(row.kg)>0&&Number(row.kg)<=500))throw new Error('体重履歴の形式が不正です。');}
  for(const row of value.dailyJournals||[])if(!dateValid(row?.date)||!row.condition||typeof row.condition!=='object'||Array.isArray(row.condition)||[row.reflection,row.nextIdea].some(v=>v!=null&&typeof v!=='string'))throw new Error('振り返りの形式が不正です。');
@@ -48,11 +56,27 @@ export function validateBackup(value){
 }
 export function mergeBackup(current,incoming,{overwrite=false,settings=false}={}){
  const patch={},count={added:0,conflicts:0};
- for(const key of ['records','gyms','bodyWeights','customExercises','trainingPresets','trainingMenus','dailyJournals','recordHistory','recycleBin','workoutReceipts']){
-  if(!Array.isArray(incoming[key]))continue;const identity=row=>key==='gyms'?row.name:['bodyWeights','dailyJournals'].includes(key)?row.date:row.id;const map=new Map((current[key]||[]).map(row=>[identity(row),clone(row)]));
-  for(const row of incoming[key]){const id=identity(row);if(!id)throw new Error(key+'にID/日付のない項目があります。');if(map.has(id)){count.conflicts++;if(overwrite)map.set(id,clone(row));}else{map.set(id,clone(row));count.added++;}}patch[key]=[...map.values()];
+ // A backup from another device can use another ID for the same named problem.
+ const localWishIds=new Map((current.outdoorWishlist||[]).map(w=>[outdoorProblemKey(w),w.id]));
+ const aliases=new Map();
+ for(const wish of incoming.outdoorWishlist||[]){
+   const id=localWishIds.get(outdoorProblemKey(wish));
+   if(id && id!==wish.id)aliases.set(wish.id,id);
+ }
+ const linked=row=>row && aliases.has(row.outdoorWishId)?{...row,outdoorWishId:aliases.get(row.outdoorWishId)}:row;
+ function incomingRow(key,row){
+   if(!aliases.size)return row;
+   if(key==='records')return linked(row);
+   if(key==='recycleBin')return {...row,record:linked(row.record)};
+   if(key==='recordHistory')return {...row,before:linked(row.before),after:linked(row.after)};
+   return row;
+ }
+ for(const key of ['records','gyms','bodyWeights','customExercises','trainingPresets','trainingMenus','dailyJournals','recordHistory','recycleBin','workoutReceipts','outdoorWishlist']){
+  if(!Array.isArray(incoming[key]))continue;const identity=row=>key==='outdoorWishlist'?outdoorProblemKey(row):key==='gyms'?row.name:['bodyWeights','dailyJournals'].includes(key)?row.date:row.id;const map=new Map((current[key]||[]).map(row=>[identity(row),clone(row)]));
+  for(const source of incoming[key]){const row=incomingRow(key,source),id=identity(row);if(!id)throw new Error(key+'にID/日付のない項目があります。');if(map.has(id)){count.conflicts++;if(overwrite)map.set(id,key==='outdoorWishlist'?{...clone(row),id:map.get(id).id}:clone(row));}else{map.set(id,clone(row));count.added++;}}patch[key]=[...map.values()];
  }
  if(settings)for(const key of ['goals','preferences','bodyProfile'])if(incoming[key])patch[key]=clone(incoming[key]);
  const active=new Set((patch.records||current.records).map(row=>row.id));if(patch.recycleBin)patch.recycleBin=patch.recycleBin.filter(entry=>entry.record&&!active.has(entry.record.id));
+ if(patch.outdoorWishlist)validateBackup({records:[],outdoorWishlist:patch.outdoorWishlist});
  return {patch,count};
 }

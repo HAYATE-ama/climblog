@@ -13,6 +13,17 @@ try{
   const context=await browser.newContext({viewport:{width,height:900},serviceWorkers:'block'});await context.route('**/*',r=>r.request().url().startsWith(origin)?r.continue():r.abort());const page=await context.newPage(),errors=[],alerts=[];page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>{alerts.push(d.message());d.accept();});await page.clock.install({time:new Date('2026-11-11T12:00:00+09:00')});await page.goto(origin);await login(page,{remember:true});await page.evaluate(theme=>window.climbLogStateApi.apply({preferences:{...window.climbLogStateApi.get().preferences,theme}}),theme);await page.clock.runFor(1000);
   const remoteBefore=await page.evaluate(()=>localStorage.getItem('__server:alice')),attemptsBefore=await page.evaluate(()=>Number(localStorage.getItem('__syncAttempts')||0));
   await context.setOffline(true);await page.waitForFunction(()=>navigator.onLine===false);await page.clock.runFor(10);assert.match(await page.locator('#syncState').innerText(),/オフライン/);
+  // A wishlist entry shares the authenticated offline queue with ordinary records.
+  await page.locator('#calendarTab').click();
+  await page.locator('#filters [data-kind=outdoor]').click();
+  await page.locator('#openOutdoorWishlist').click();
+  const wish=page.locator('#outdoorWishlist');
+  await wish.locator('[data-add]').click();
+  await wish.locator('[name=cragName]').fill('検証用の岩場');
+  await wish.locator('[name=routeName]').fill('検証用の課題');
+  await wish.locator('[type=submit]').click();
+  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('climbLogPendingState:alice')).payload.outdoorWishlist.length),1);
+  await wish.locator('[data-close]').click();
   // Exercise real save/edit/delete flows, with only sample account data.
   await page.evaluate(()=>window.climbLogRecordApi.open('gym',null,'2026-11-11'));await page.locator('#gymGradeButton').click();await page.locator('#gymGradeMenu [data-grade]').first().click();await page.locator('#gymTries').selectOption('3');await page.locator('#gymSends').selectOption('1');await page.locator('#gymMemo').fill('オフラインで追加');await page.locator('#save').click();assert.equal(await page.locator('#modal').evaluate(e=>e.classList.contains('open')),false,JSON.stringify({alerts,state:await page.locator('#syncState').innerText(),invalid:await page.locator('#modal :invalid').evaluateAll(es=>es.map(e=>({id:e.id,value:e.value}))),grade:await page.locator('#gymGrade').inputValue()}));
   await page.evaluate(()=>window.climbLogRecordViewer.open('alice-record'));await page.locator('[data-viewer-action=edit]').click();await page.locator('#gymMemo').fill('オフラインで編集');await page.locator('#save').click();
@@ -21,6 +32,8 @@ try{
   await page.locator('#calendarTab').click();await page.screenshot({path:path.join(resultsDir,'offline-'+width+'-'+theme+'.png')});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
   // Reconnection alone synchronizes the latest local snapshot, once.
   await context.setOffline(false);await page.clock.runFor(1500);await page.waitForFunction(()=>localStorage.getItem('climbLogPendingState:alice')===null);assert.deepEqual(await page.evaluate(()=>JSON.parse(localStorage.getItem('__server:alice')).payload.records),localRecords);assert.equal(await page.evaluate(()=>Number(localStorage.getItem('__syncAttempts')||0)),attemptsBefore+1);assert.equal(await page.locator('#syncState').innerText(),'同期済み');await page.reload();await waitApp(page);assert.deepEqual(await page.evaluate(()=>window.climbLogStateApi.get().records),localRecords);
+  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('__server:alice')).payload.outdoorWishlist[0].routeName),'検証用の課題');
+  assert.equal(await page.evaluate(()=>window.climbLogStateApi.get().outdoorWishlist.length),1);
   // A server outage with navigator.onLine=true must keep a manual retry and not spin.
   await page.evaluate(()=>{localStorage.setItem('__failUpsert','1');window.climbLogStateApi.apply({goals:{focus:'通信失敗でも保持',plan:'',reflection:'',status:'active'}});});await page.clock.runFor(1000);assert.match(await page.locator('#syncState').innerText(),/未同期/);assert.equal(await page.locator('#syncState').isEnabled(),true);const failedAttempts=await page.evaluate(()=>Number(localStorage.getItem('__syncAttempts')||0));await page.clock.runFor(30000);assert.equal(await page.evaluate(()=>Number(localStorage.getItem('__syncAttempts')||0)),failedAttempts);await page.evaluate(()=>localStorage.removeItem('__failUpsert'));await page.locator('#syncState').click();await page.waitForFunction(()=>localStorage.getItem('climbLogPendingState:alice')===null);assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('__server:alice')).payload.goals.focus),'通信失敗でも保持');
   // A newer cloud snapshot must not be replaced on reconnect.
