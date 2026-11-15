@@ -1,4 +1,4 @@
-import {boulderJapaneseGrades,japaneseDanPoints} from './japanese-boulder-grades.mjs';
+import {boulderJapaneseGrades,japaneseGradeKey} from './japanese-boulder-grades.mjs';
 
 const vScaleGrades=Array.from({length:18},(_,i)=>[`V${i}-`,`V${i}`,`V${i}+`]).flat();
 const fontScaleGrades=["3","3+","4","4+","5","5+",...Array.from({length:4},(_,i)=>["A","B","C"].flatMap(letter=>{const band=6+i;return [`${band}${letter}`,`${band}${letter}+`]}))];
@@ -21,14 +21,14 @@ const collator=new Intl.Collator('ja',{numeric:true});
 function gradePosition(record){
   const grade=String(record.outdoorGrade??record.grade??'').normalize('NFKC').trim();
   if(!grade||['NoGrade','グレード未設定','未設定'].includes(grade))return {missing:true,label:'グレード未設定'};
-  const dan=japaneseDanPoints(grade);
+  const keyFor=c=>c.system==='日本（段級）'?japaneseGradeKey(grade):grade;
   const matches=catalogs.filter(c=>{
     if(record.discipline&&!Object.hasOwn(systems[record.discipline]||{},c.system))return false;
     if(record.gradeSystem)return record.gradeSystem===c.system;
-    return c.ranks.has(grade)||(c.system==='日本（段級）'&&dan!==null);
+    return c.ranks.has(keyFor(c));
   });
   const catalog=matches.length===1?matches[0]:null;
-  const rank=catalog?.system==='日本（段級）'&&dan!==null?10+(dan-1)*2:catalog?.ranks.get(grade);
+  const rank=catalog?.ranks.get(keyFor(catalog));
   return {grade,label:catalog?.system||record.gradeSystem||'体系未設定',group:catalog?.order??catalogs.length,rank:rank??Number.MAX_SAFE_INTEGER};
 }
 

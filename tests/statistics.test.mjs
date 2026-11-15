@@ -3,8 +3,8 @@ import test from 'node:test';import assert from 'node:assert/strict';
 import {sortOutdoorRecords,statsTopics,statsRange,availableStatsYears,buildStatsData,completeStrengthCondition,strengthConditionLabel} from '../assets/js/stats-model.mjs';
 test('outdoor grades follow each scale, with historical aliases, ties and ungraded rows',()=>{
  const row=(grade,gradeSystem,discipline,date='2026-10-01')=>({id:grade,date,grade,gradeSystem,discipline});
- const rows=[row('NoGrade'),row('V10','V Scale'),row('6A+','Fontainebleau'),row('初/二段'),row('二段'),row('1級'),row('初段'),row('3級'),row('V2+','V Scale'),row('V2-','V Scale'),row('6A','Fontainebleau'),row('5.10c','YDS / デシマル','lead'),row('5.9','YDS / デシマル','lead'),row('VII','UIAA','lead'),row('VI','UIAA','lead'),row('6a+','French','lead'),row('6a','French','lead'),row('２段',undefined,undefined,'2026-10-02')];
- assert.deepEqual(sortOutdoorRecords(rows,'grade').map(r=>r.grade),['3級','1級','初段','初/二段','２段','二段','V2-','V2+','V10','6A','6A+','5.9','5.10c','6a','6a+','VI','VII','NoGrade']);
+ const rows=[row('NoGrade'),row('V10','V Scale'),row('6A+','Fontainebleau'),row('三段'),row('３段−'),row('二/三段'),row('２段＋'),row('二段-'),row('1級+'),row('1級-'),row('初段+'),row('初段-'),row('初/二段'),row('二段'),row('1級'),row('初段'),row('3級'),row('V2+','V Scale'),row('V2-','V Scale'),row('6A','Fontainebleau'),row('5.10c','YDS / デシマル','lead'),row('5.9','YDS / デシマル','lead'),row('VII','UIAA','lead'),row('VI','UIAA','lead'),row('6a+','French','lead'),row('6a','French','lead'),row('２段',undefined,undefined,'2026-10-02')];
+ assert.deepEqual(sortOutdoorRecords(rows,'grade').map(r=>r.grade),['3級','1級-','1級','1級+','初段-','初段','初段+','初/二段','二段-','２段','二段','２段＋','二/三段','３段−','三段','V2-','V2+','V10','6A','6A+','5.9','5.10c','6a','6a+','VI','VII','NoGrade']);
 });
 const q=(topic,more={})=>({topic,period:'month',month:'2026-10',year:'2026',gym:'all',...more});
 const gym=(id,date,more={})=>({id,date,kind:'gym',gymName:'A',grade:'3級',sends:2,tries:3,...more});

@@ -11,19 +11,37 @@ test('new ascents add dan once and explicitly selected repeats add on separate d
 test('same-day duplicate first send does not become extra repeat points',()=>{const result=outdoorDanSummary([r('a','2026-10-01','A'),r('b','2026-10-01','A')],range);assert.equal(result.newDan,2);assert.equal(result.repeatDan,0);assert.equal(result.totalDan,2);});
 test('explicit repeat works without prior history, while explicit new remains unique per problem',()=>{const records=[r('a','2026-10-01','A','二段',{ascentType:'repeat'}),r('b','2026-10-02','B','三段',{ascentType:'new'}),r('c','2026-10-03','B','三段',{ascentType:'new'})],out=outdoorDanSummary(records,range);assert.equal(out.newDan,3);assert.equal(out.repeatDan,2);assert.equal(out.inferred,0);assert.equal(out.duplicateNew,1);});
 test('failed attempts, kyu, lead and ambiguous grades never become dan points',()=>{const records=[r('fail','2026-11-01','A','三段',{result:'attempt'}),r('kyu','2026-11-02','B','1級'),r('lead','2026-11-03','C','二段',{discipline:'lead'}),r('ambiguous','2026-11-04','D','初/三段')];assert.equal(outdoorDanSummary(records,range).newDan,0);assert.equal(outdoorDanSummary(records,range).entries.length,3);assert.equal(danValue(r('x','2026-10-01','X','初段')),1);assert.equal(danValue(r('x','2026-10-01','X','３段')),3);});
-test('Japanese boulder grades offer each adjacent dan pair in order at its midpoint',()=>{
+test('single Japanese grades have minus, plain and plus options; split grades stay single',()=>{
  const names=['初','二','三','四','五','六','七','八','九','十'];
- assert.deepEqual(boulderJapaneseGrades.slice(0,10),Array.from({length:10},(_,i)=>(10-i)+'級'));
- const options=boulderJapaneseGrades.slice(10);
- assert.equal(options.length,19);
- for(const [i,label] of options.entries()){
-   const lower=Math.floor(i/2);
-   assert.equal(label,i%2?names[lower]+'/'+names[lower+1]+'段':names[lower]+'段');
-   assert.equal(danValue({outdoorGrade:label,discipline:'boulder',gradeSystem:'日本（段級）'}),1+i/2);
+ const expected=[];
+ for(let n=10;n>=1;n--){
+   const grade=n+'級';
+   expected.push(grade+'-',grade,grade+'+');
+   for(const sign of ['-','','+'])assert.equal(danValue({grade:grade+sign}),null);
  }
+ for(const [i,name] of names.entries()){
+   const grade=name+'段';
+   expected.push(grade+'-',grade,grade+'+');
+   assert.equal(danValue({grade}),i+1);
+   if(i+1<names.length){
+     const split=name+'/'+names[i+1]+'段';
+     expected.push(split);
+     assert.equal(danValue({grade:split}),i+1.5);
+     for(const sign of ['-','+'])assert.equal(danValue({grade:split+sign}),null);
+   }
+ }
+ assert.deepEqual(boulderJapaneseGrades,expected);
+ assert.equal(danValue({grade:'２段＋'}),danValue({grade:'二段+'}));
+ assert.equal(danValue({grade:'３段−'}),danValue({grade:'三段-'}));
  assert.equal(danValue({grade:'初／二段'}),1.5);
- assert.equal(danValue({grade:'初/二段',gradeSystem:'V Scale'}),null);
- assert.equal(danValue({grade:'初/二段',discipline:'lead'}),null);
+ assert.equal(danValue({grade:'二段+',gradeSystem:'V Scale'}),null);
+ assert.equal(danValue({grade:'三段-',discipline:'lead'}),null);
+});
+test('signed dan labels survive backup and count toward new and repeated ascent totals',()=>{
+ const rows=[r('a','2026-11-01','A','二段+'),r('b','2026-11-02','A','二段+',{ascentType:'repeat'}),r('c','2026-11-02','B','三段-')];
+ const {newDan,repeatDan,totalDan}=outdoorDanSummary(rows,range);
+ assert.deepEqual([newDan,repeatDan,totalDan],[5,2,7]);
+ assert.deepEqual(validateBackup({records:rows}).records,rows);
 });
 test('split dan grades count for new sends and separate repeat days, preserving the recorded label',()=>{
  const rows=[r('a','2026-11-01','A','初/二段'),r('b','2026-11-02','A','初/二段',{ascentType:'repeat'}),r('c','2026-11-02','A','初/二段',{ascentType:'repeat'}),r('d','2026-11-03','B','二/三段',{result:'attempt'})];
