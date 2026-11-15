@@ -95,6 +95,16 @@ try{
   await wish.waitFor({state:'visible'});assert.equal(await pending.locator('.wishRow').count(),2);
   await pending.getByRole('button',{name:seed.routeName+'を記録する'}).click();await page.locator('#outdoorSend').click();await page.locator('#save').click();
   await wish.waitFor({state:'visible'});assert.equal(await pending.locator('.wishRow').count(),1);assert.equal(await wish.locator('[data-finished-rows] .wishRow').count(),1);
+  const cragFilter=wish.locator('[data-crag]'),finished=wish.locator('[data-finished]');
+  assert.equal(await cragFilter.inputValue(),seed.cragName);
+  await finished.locator('summary').click();
+  assert.ok(await finished.locator('.wishRow').isHidden());
+  await wish.locator('[data-close]').click();
+  await launcher.click();
+  assert.equal(await cragFilter.inputValue(),'');
+  assert.deepEqual((await pending.locator('h3').allTextContents()).sort(),[seed.cragName,'第二岩場'].sort());
+  assert.equal(await pending.locator('.wishRow').count(),2);
+  assert.ok(await finished.getByRole('button',{name:seed.routeName+'を記録する'}).isVisible());
   await wish.locator('[data-crag]').selectOption('第二岩場');await pending.locator('.wishLog').click();assert.equal(await page.locator('#outdoorMemo').inputValue(),'別課題の下書き');await page.locator('#cancel').click();
   await wish.locator('[data-crag]').selectOption(seed.cragName);await pending.locator('.wishLog').click();
   assert.equal(await page.locator('#outdoorGrade').inputValue(),'');assert.equal(await page.locator('#outdoorGrade option:checked').innerText(),'未設定');

@@ -93,8 +93,8 @@ export function installOutdoorWishlist(){
       button.scrollIntoView({block:'nearest'});
     }else get('[data-add]').focus({preventScroll:true});
   }
-  function openList(){
-    drawList();show('list');
+  function openList(preferredCrag){
+    drawList(preferredCrag);show('list');
     if(!dialog.open)dialog.showModal();
     routes.scrollTop=listScrollTop;
   }
@@ -117,7 +117,7 @@ export function installOutdoorWishlist(){
     const id=returnId;returnId=null;
     queueMicrotask(()=>{
       if(locked)return;
-      openList();
+      openList(filter.value);
       if(saved){
         const fact=facts().find(f=>f.wish.id===id);
         if(fact?.done)get('[data-finished]').open=true;
@@ -144,7 +144,11 @@ export function installOutdoorWishlist(){
     routes.scrollTop=listScrollTop;
     focusWish(selectedId);
   }
-  entry.onclick=()=>{selectedId=null;listScrollTop=0;openList();};
+  entry.onclick=()=>{
+    selectedId=null;returnId=null;listScrollTop=0;
+    get('[data-finished]').open=true;
+    openList('');
+  };
   dialog.addEventListener('close',()=>{
     if(!locked&&!returnId&&!dialog.open&&entry.getClientRects().length)entry.focus({preventScroll:true});
   });
