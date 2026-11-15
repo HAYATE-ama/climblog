@@ -1,3 +1,4 @@
+import {checkDateRangeLayout} from './date-range-layout.mjs';
 import os from 'node:os';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -38,6 +39,7 @@ try{
    await page.evaluate(theme=>document.body.dataset.theme=theme,theme);
    await page.locator('#recordSearchFrom').fill('2026-10-15');await page.locator('#recordSearchTo').fill('2026-10-15');assert.match(await page.locator('#recordSearchCount').innerText(),/32件中 30件/);
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
+   await checkDateRangeLayout(page.locator('.recordSearchPeriod'),viewport.width<=640);
    await page.screenshot({path:path.join(resultDir,`period-${viewport.width}-${theme}.png`)});
   }
   await page.locator('#recordSearch').fill('５級　ﾃｽﾄ');assert.match(await page.locator('#recordSearchCount').innerText(),/32件中 30件/);

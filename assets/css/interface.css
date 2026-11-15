@@ -88,10 +88,33 @@ body[data-theme="light"] .trainingMetrics>div{background:#f4f1f8;color:#202b3b}b
 @media(max-width:640px){#appRoot #mainNavigation .tab{font-size:12px;min-height:48px}}
 @media(prefers-reduced-motion:reduce){#appRoot #mainNavigation .tab{transition:none}}
 
+.dateRangeFields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  min-inline-size: 0;
+}
+.dateRangeFields > label {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+  min-inline-size: 0;
+  font-size: 13px;
+}
+.dateRangeFields input[type=date] {
+  box-sizing: border-box;
+  width: 100%;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+@media (max-width: 640px) {
+  .dateRangeFields { grid-template-columns: minmax(0, 1fr); }
+}
+
 /* Optional date range for record history; no persistent account data. */
-.recordSearchPeriod{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0 0;padding:10px;border:1px solid var(--line);border-radius:10px;min-width:0}
+.recordSearchPeriod{margin:12px 0 0;padding:10px;border:1px solid var(--line);border-radius:10px;min-width:0}
 .recordSearchPeriod legend{color:var(--muted);font-size:13px;padding:0 4px}
-.recordSearchPeriod label{display:grid;gap:5px;flex:1 1 160px;min-width:0;font-size:13px;color:var(--text)}
-.recordSearchPeriod input{box-sizing:border-box;width:100%;min-width:0;min-height:44px;padding:8px;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:8px;font:inherit}
+.recordSearchPeriod label{color:var(--text)}
+.recordSearchPeriod input{min-height:44px;padding:8px;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:8px;font:inherit;font-size:16px}
 .recordSearchPeriod input:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
-.recordSearchPeriod p{flex-basis:100%;margin:0;color:var(--text)}
+.recordSearchPeriod p{grid-column:1 / -1;margin:0;color:var(--text)}

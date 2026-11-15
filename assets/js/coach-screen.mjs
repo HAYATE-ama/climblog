@@ -7,7 +7,7 @@ export function installCoachScreen(){
  view.innerHTML=`<section class="card coachIntro"><div><h2>記録をチャットで相談</h2><p class="sub">① レポートを作成 → ② チャットに貼る → ③ 分析とコースを相談 → ④ アプリへ反映</p><p class="sub">コース生成APIは使用しません。作成・コピーだけでは外部へ送信されません。</p></div></section>
  <section class="card coachSetup"><form id="coachingReportForm"><h3>相談用レポート</h3>
  <label for="coachingPeriod">対象期間<select id="coachingPeriod"><option value="28">直近28日</option><option value="90">直近90日</option><option value="all">全期間</option><option value="custom">日付を指定</option></select></label>
- <div class="coachFields"><label for="coachingFrom">開始日<input id="coachingFrom" type="date"></label><label for="coachingTo">終了日<input id="coachingTo" type="date" required></label></div>
+ <div class="dateRangeFields"><label for="coachingFrom">開始日<input id="coachingFrom" type="date"></label><label for="coachingTo">終了日<input id="coachingTo" type="date" required></label></div>
  <label for="coachingGoal">相談したいこと・目標<textarea id="coachingGoal" rows="4" maxlength="2000" placeholder="例：長ものの後半で落ちる。記録から弱点と週の練習メニューを考えてほしい。"></textarea></label>
  <details><summary>含める情報を選ぶ</summary><p class="sub">日付・登攀結果・グレード・種目・セット・回数・時間・重量を含めます。</p><label class="coachCheck"><input id="coachingNotes" type="checkbox"> 記録のメモ</label><label class="coachCheck"><input id="coachingBody" type="checkbox"> 体重・身長・リーチ</label><label class="coachCheck"><input id="coachingLocations" type="checkbox"> ジム名・岩場名・課題名</label></details>
  <button type="submit" class="primary">相談用レポートを作る</button><p id="coachingReportStatus" role="status" aria-live="polite"></p></form>
