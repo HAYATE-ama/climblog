@@ -45,7 +45,9 @@ export function installOutdoorWishlist(){
   const get=selector=>dialog.querySelector(selector);
   const form=get('form'),fields=form.elements,filter=get('[data-crag]'),status=get('.wishStatus');
   const body=get('.wishBody'),routes=get('.wishRoutes');
-  let screen='list',selectedId=null,returnId=null,locked=false,listScrollTop=0;
+  let screen='list',selectedId=null,returnId=null,locked=false,listScrollTop=0,addBaseline='';
+  const addSnapshot=()=>JSON.stringify([...new FormData(form)]);
+  const mayLeaveAdd=()=>screen!=='add'||addSnapshot()===addBaseline||confirm('未保存の課題があります。入力を破棄しますか？');
   const facts=()=>wishlistEntries(wishes(),records.getRecords());
   function show(next){
     if(screen==='list'&&next!=='list')listScrollTop=routes.scrollTop;
@@ -137,9 +139,10 @@ export function installOutdoorWishlist(){
     const crags=new Set(wishes().map(w=>w.cragName));
     for(const r of records.getRecords())if(r.kind==='outdoor'&&(r.cragName||r.place))crags.add(r.cragName||r.place);
     crags.delete('未設定');get('#wishCrags').replaceChildren(...[...crags].sort().map(c=>new Option(c,c)));
-    setSystems();show('add');fields.cragName.focus();
+    setSystems();addBaseline=addSnapshot();show('add');fields.cragName.focus();
   }
   function back(){
+    if(!mayLeaveAdd())return;
     show('list');drawList();
     routes.scrollTop=listScrollTop;
     focusWish(selectedId);
@@ -152,7 +155,7 @@ export function installOutdoorWishlist(){
   dialog.addEventListener('close',()=>{
     if(!locked&&!returnId&&!dialog.open&&entry.getClientRects().length)entry.focus({preventScroll:true});
   });
-  get('[data-close]').onclick=()=>dialog.close();get('[data-back]').onclick=back;
+  get('[data-close]').onclick=()=>{if(mayLeaveAdd())dialog.close();};get('[data-back]').onclick=back;
   get('[data-add]').onclick=beginAdd;
   filter.onchange=()=>{drawList();status.textContent='';};
   fields.discipline.onchange=setSystems;fields.gradeSystem.onchange=setGrades;

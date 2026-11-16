@@ -79,7 +79,7 @@ try{
   await form.locator('[type=submit]').click();assert.equal(await pending.locator('.wishRow').count(),2);
   assert.equal(await pending.locator('.wishRoute strong').first().innerText(),seed.routeName);
   await wish.locator('[data-add]').click();await form.locator('[name=routeName]').fill('未登課題');await form.locator('[type=submit]').click();
-  assert.match(await wish.locator('.wishStatus').innerText(),/すでに/);await wish.locator('[data-back]').click();
+  assert.match(await wish.locator('.wishStatus').innerText(),/すでに/);await wish.locator('[data-back]').click();assert.match(alerts.pop(),/未保存の課題/);
   await wish.locator('[data-add]').click();await form.locator('[name=cragName]').fill('第二岩場');await form.locator('[name=routeName]').fill('別課題');
   await form.locator('summary').click();await form.locator('[name=discipline]').selectOption('lead');await form.locator('[name=gradeSystem]').selectOption('French');
   await form.locator('[name=outdoorGrade]').selectOption('7a');await form.locator('[type=submit]').click();assert.equal(await pending.locator('.wishRow').count(),1);
