@@ -8,7 +8,7 @@ export function installSettingsDrawer(){
  document.body.append(drawer);drawer.querySelector('.settingsDrawerScroll').append(view);home.hidden=true;view.hidden=false;
  const appearancePanel=document.createElement('section');appearancePanel.id='settingsAppearancePanel';appearancePanel.append(appearance,groups.find(g=>g.querySelector('#weekStartSetting')));const saveStatus=document.createElement('p');saveStatus.id='settingsSaveStatus';saveStatus.className='sub';saveStatus.setAttribute('role','status');appearancePanel.append(saveStatus);view.append(appearancePanel);
  const dataPanel=document.createElement('section');dataPanel.id='settingsDataPanel';dataPanel.append(data);view.append(dataPanel);
- $('settingsDrawerFooter').append($('settingsSyncStatus'),$('signOut'));$('gymSaveStatus').setAttribute('role','status');
+ $('settingsDrawerFooter').append($('settingsSyncStatus'));$('gymSaveStatus').setAttribute('role','status');
  const tools=$('dataDialog');tools.classList.add('settingsEmbeddedTools');view.append(tools);
  const toolClose=tools.querySelector('[data-close]');toolClose.onclick=()=>choose('data');
  const panels={appearance:appearancePanel,body,gym,data:dataPanel,dataTools:tools},titles={appearance:'表示・カレンダー',body:'身体情報',gym:'ジム・グレード',data:'データ管理',dataTools:'復元・ゴミ箱・履歴'};
@@ -25,7 +25,7 @@ export function installSettingsDrawer(){
  function unlockScroll(){if(!previousBodyStyle)return;Object.assign(document.body.style,previousBodyStyle);previousBodyStyle=null;window.scrollTo({top:forceClosing?0:scrollY,left:0,behavior:'instant'});}
  function close(force=false){if(!drawer.open)return true;if(!force&&!mayLeave())return false;forceClosing=force;drawer.close();unlockScroll();gear.setAttribute('aria-expanded','false');if(!force)gear.focus({preventScroll:true});return true;}
  function open(){if(drawer.open)return;view.hidden=false;forceClosing=false;scrollY=window.scrollY;previousBodyStyle=Object.fromEntries(['position','top','left','right','width','overflow'].map(k=>[k,document.body.style[k]]));Object.assign(document.body.style,{position:'fixed',top:`-${scrollY}px`,left:'0',right:'0',width:'100%',overflow:'hidden'});
-  $('themeSetting').value=window.climbLogStateApi.get().preferences?.theme||'dark';$('weekStartSetting').value=String(window.climbLogStateApi.get().preferences?.weekStart??1);$('settingsSyncStatus').textContent='同期状態：'+$('syncState').textContent;
+  $('themeSetting').value=window.climbLogStateApi.get().preferences?.theme||'dark';$('weekStartSetting').value=String(window.climbLogStateApi.get().preferences?.weekStart??1);$('settingsSyncStatus').textContent='保存状態：'+$('syncState').textContent;
   paintPanel('menu');drawer.showModal();gear.setAttribute('aria-expanded','true');$('settingsDrawerClose').focus({preventScroll:true});
  }
  $('settingsAi').onclick=()=>{if(close())void window.climbLogAiCoach?.openConsent();};
@@ -40,7 +40,7 @@ export function installSettingsDrawer(){
  for(const id of ['settingsBack','bodyWeightBack'])$(id).addEventListener('click',e=>{e.preventDefault();e.stopImmediatePropagation();choose('menu');},true);
  $('bodyProfileForm').addEventListener('submit',()=>queueMicrotask(()=>{if(/保存しました/.test($('bodyProfileMessage').textContent))bodyBaseline=bodySnapshot();}));
  $('saveGym').addEventListener('click',()=>{const snapshot=window.climbLogGymEditor.snapshot();if(localStorage.getItem('climbLogGyms')===snapshot)gymBaseline=snapshot;});
- new MutationObserver(()=>{if(drawer.open)$('settingsSyncStatus').textContent='同期状態：'+$('syncState').textContent;}).observe($('syncState'),{childList:true,characterData:true,subtree:true});
+ new MutationObserver(()=>{if(drawer.open)$('settingsSyncStatus').textContent='保存状態：'+$('syncState').textContent;}).observe($('syncState'),{childList:true,characterData:true,subtree:true});
  window.addEventListener('climblog:authLock',()=>close(true));
  window.climbLogSettings={open,close,openBody:()=>{if(!drawer.open)open();choose('body');},openDataTools:()=>{if(!drawer.open)open();choose('dataTools');}};
  paintPanel('menu');

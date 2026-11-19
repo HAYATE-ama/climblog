@@ -35,7 +35,9 @@ try{
     const tile=i=>d.locator('[data-route-index="'+i+'"]');await tile(7).click();await doAct('fall');await doAct('fall');
     await doAct('close');await p.reload();await p.waitForFunction(()=>window.testReady);await open();
     await tile(7).click();assert.match(await d.locator('.circuitCurrent').innerText(),/2トライ/);
-    await doAct('sent');await doAct('undo');await doAct('sent');await doAct('filter');
+    await doAct('sent');await doAct('undo');await doAct('sent');await doAct('sent');await doAct('fall');await doAct('sent');
+    assert.match(await d.locator('.circuitCurrent').innerText(),/完登 3回.*途中落ち 3回/);
+    assert.match(await tile(7).innerText(),/3回/);await doAct('filter');
     await tile(7).waitFor({state:'detached'});assert.equal(await d.locator('[data-route-index]').count(),11);
     await d.locator('details summary').click();await d.locator('[name=total]').fill('');await d.getByRole('button',{name:'総課題数を変更'}).click();
     await doAct('add');await doAct('tape');await d.locator('[data-shape="＋"]').click();
@@ -61,7 +63,7 @@ try{
     }
     await doAct('save');await d.waitFor({state:'hidden'});
     const rows=await p.evaluate(()=>window.climbLogStateApi.get().records);
-    assert.deepEqual(rows.map(r=>[r.memo,r.sends,r.tries]),[['8番',1,3],['ルーフ左 · ＋',0,1]]);
+    assert.deepEqual(rows.map(r=>[r.memo,r.sends,r.tries]),[['8番',3,6],['ルーフ左 · ＋',0,1]]);
     assert.equal(await p.locator('#calendarView').isVisible(),true);
     await p.locator('#detail summary').first().click();
     assert.match(await p.locator('#detail').innerText(),/8番/);assert.deepEqual(errors,[]);

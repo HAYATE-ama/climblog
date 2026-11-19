@@ -9,6 +9,7 @@
 .settingsDrawer .settingsGrid,.settingsDrawer .settingsHomeGrid,.settingsDrawer .gymInfoGrid,.settingsDrawer .bodyWeightFields{display:flex;flex-direction:column;gap:14px}
 .settingsDrawer .settingGroup,.settingsDrawer .card{padding:14px 0;border:0;border-radius:0;box-shadow:none;background:var(--panel)}
 .settingsDrawer .settingGroup>h3,.settingsDrawer .settingGroup>p,.settingsDrawer .settingsBack,.settingsDrawer #gymSettingsView>.heading,.settingsDrawer #bodyWeightSettings>.heading{display:none}
+.settingsDrawer #settingsDataPanel .settingGroup>p{display:block;color:var(--muted);font-size:.9rem;line-height:1.7;margin:0 0 16px}
 .settingsDrawer #settingsAppearancePanel .settingControl{display:flex;flex-direction:column;align-items:stretch;gap:8px;padding:0;margin:0 0 22px;color:var(--text)}
 .settingsDrawer .settingControl select{width:100%!important;max-width:none!important;min-width:0;min-height:46px;font-size:16px}
 .settingsDrawer input:not([type=checkbox]):not([type=color]),.settingsDrawer select,.settingsDrawer textarea{font-size:16px;max-width:100%;min-width:0;box-sizing:border-box}

@@ -3,7 +3,7 @@ import {addCircuitRoutes,circuitLabel,circuitNumbers,circuitRecords,circuitStats
 
 const button=(action,label,attrs='')=>'<button type="button" data-circuit="'+action+'" '+attrs+'>'+label+'</button>';
 const options=values=>values.map(v=>'<option>'+esc(v)+'</option>').join('');
-const routeStatus=r=>r.sent?'完登':r.tries?'トライ中':'未着手';
+const routeStatus=r=>r.tries?'完登 '+r.sends+'回 ／ 途中落ち '+(r.tries-r.sends)+'回':'未着手';
 
 export function installGradeCircuit({api,getGyms}){
   const dialog=document.createElement('dialog');
@@ -16,7 +16,7 @@ export function installGradeCircuit({api,getGyms}){
   let session,owner,key,raw,date,screen,selection,onlyRemaining,markKind,shape,opener,busy=false;
   const say=text=>{message.textContent=text};
   function checkOwner(){
-    if(!owner||window.climbLogAccountId!==owner||window.climbLogAuthReady===false)throw new Error('ログイン状態を確認して開き直してください。');
+    if(!owner||window.climbLogAccountId!==owner||window.climbLogAuthReady===false)throw new Error('保存先を確認して開き直してください。');
   }
   function checkDraft(){
     checkOwner();
@@ -39,16 +39,16 @@ export function installGradeCircuit({api,getGyms}){
     gym.onchange=setGrades;setGrades();
   }
   function run(){
-    const {routes,total}=session,{sends,tries}=circuitStats(session),tiles=[];
-    const visible=routes.map((r,i)=>i).filter(i=>!onlyRemaining||!routes[i].sent);
+    const {routes,total}=session,{sends,tries,completed,falls}=circuitStats(session),tiles=[];
+    const visible=routes.map((r,i)=>i).filter(i=>!onlyRemaining||!routes[i].sends);
     if(!visible.includes(selection))selection=visible[0]??-1;
     const current=routes[selection];
     for(const i of visible){
-      const r=routes[i],label=circuitLabel(r),symbol=r.sent?'✓':r.tries?'◐':'–';
-      tiles.push('<button type="button" class="circuitTile" data-route-index="'+i+'" data-state="'+(r.sent?'sent':r.tries?'tried':'new')+'" aria-pressed="'+(selection===i)+'" aria-label="'+esc(label+'、'+routeStatus(r)+'、'+r.tries+'トライ')+'"><span aria-hidden="true">'+symbol+'</span> '+esc(label)+'</button>');
+      const r=routes[i],label=circuitLabel(r),symbol=r.sends?'✓':r.tries?'◐':'–';
+      tiles.push('<button type="button" class="circuitTile" data-route-index="'+i+'" data-state="'+(r.sends?'sent':r.tries?'tried':'new')+'" aria-pressed="'+(selection===i)+'" aria-label="'+esc(label+'、'+routeStatus(r)+'、'+r.tries+'トライ')+'"><span aria-hidden="true">'+symbol+'</span> '+esc(label)+(r.sends?' <small>'+r.sends+'回</small>':'')+'</button>');
     }
-    body.innerHTML='<div class="circuitProgress"><small>'+esc(session.date)+' · '+esc(session.gym)+'</small><strong>'+esc(session.grade)+'</strong><div><b>'+sends+'</b>'+(total===null?'':' / '+total)+' 課題完登</div><small>'+(total===null?'総数未設定':'残り'+(total-sends)+'課題')+' · 計'+tries+'トライ</small></div><div class="circuitRow"><h3>課題を選ぶ</h3>'+button('filter','未完登のみ','aria-pressed="'+onlyRemaining+'"')+'</div><div class="circuitGrid">'+tiles.join('')+'</div>'+(!visible.length?'<p class="sub">'+(routes.length?'表示する未完登課題はありません。':'「課題を追加」から最初の目印を選んでください。')+'</p>':'')+'<small class="sub">✓ 完登　◐ トライ中　– 未着手</small>'+button('add','＋ 課題を追加')+
-      (current?'<section class="circuitCurrent"><h3>'+esc(circuitLabel(current))+'</h3><p>'+routeStatus(current)+' · '+current.tries+'トライ</p><div class="circuitButtons">'+button('sent',current.sent?'完登済み':'完登した','class="primary" '+(current.sent?'disabled':''))+button('fall','途中で落ちた',current.sent?'disabled':'')+'</div></section>':'')+
+    body.innerHTML='<div class="circuitProgress"><small>'+esc(session.date)+' · '+esc(session.gym)+'</small><strong>'+esc(session.grade)+'</strong><div><b>'+completed+'</b>'+(total===null?'':' / '+total)+' 課題完登</div><p>延べ完登 '+sends+'回 ／ 途中落ち '+falls+'回</p><small>'+(total===null?'総数未設定':'残り'+(total-completed)+'課題')+' · 計'+tries+'トライ</small></div><div class="circuitRow"><h3>課題を選ぶ</h3>'+button('filter','未完登のみ','aria-pressed="'+onlyRemaining+'"')+'</div><div class="circuitGrid">'+tiles.join('')+'</div>'+(!visible.length?'<p class="sub">'+(routes.length?'表示する未完登課題はありません。':'「課題を追加」から最初の目印を選んでください。')+'</p>':'')+'<small class="sub">✓ 完登　◐ トライ中　– 未着手。同じ課題も繰り返し記録できます。</small>'+button('add','＋ 課題を追加')+
+      (current?'<section class="circuitCurrent"><h3>'+esc(circuitLabel(current))+'</h3><p>'+routeStatus(current)+' · '+current.tries+'トライ</p><div class="circuitButtons">'+button('sent','完登 <span class="circuitIncrement">＋1</span>','class="primary"')+button('fall','途中落ち <span class="circuitIncrement">＋1</span>')+'</div></section>':'')+
       (session.undo?button('undo','直前のトライを戻す'):'')+button('finish','ここまでで終了','class="circuitWide"')+
       '<details><summary>サーキットの設定</summary><form data-form="total"><label>総課題数（任意）<input type="number" name="total" min="1" max="300" value="'+(total??'')+'"></label><button>総課題数を変更</button></form>'+button('discard','この下書きを破棄')+'</details>';
   }
@@ -63,7 +63,7 @@ export function installGradeCircuit({api,getGyms}){
   }
   function review(){
     const stats=circuitStats(session);
-    body.innerHTML='<h3>今日の結果</h3><p>'+esc(session.date)+' · '+esc(session.gym)+' · '+esc(session.grade)+'</p><strong>'+stats.sends+(session.total===null?'':' / '+session.total)+'課題完登 · '+stats.tries+'トライ</strong><ul>'+session.routes.filter(r=>r.tries).map(r=>'<li>'+esc(circuitLabel(r))+' · '+routeStatus(r)+' · '+r.tries+'トライ</li>').join('')+'</ul><p class="sub">'+(stats.tries?'トライした課題を1件ずつジム記録に保存します。':'実施したトライがありません。')+'</p><div class="circuitButtons">'+button('save','カレンダーに保存','class="primary" '+(stats.tries?'':'disabled'))+button('back','実施に戻る')+'</div>';
+    body.innerHTML='<h3>今日の結果</h3><p>'+esc(session.date)+' · '+esc(session.gym)+' · '+esc(session.grade)+'</p><strong>'+stats.completed+(session.total===null?'':' / '+session.total)+'課題完登 · 延べ完登 '+stats.sends+'回 ／ 途中落ち '+stats.falls+'回 · '+stats.tries+'トライ</strong><ul>'+session.routes.filter(r=>r.tries).map(r=>'<li>'+esc(circuitLabel(r))+' · '+routeStatus(r)+' · '+r.tries+'トライ</li>').join('')+'</ul><p class="sub">'+(stats.tries?'トライした課題を1件ずつジム記録に保存します。':'実施したトライがありません。')+'</p><div class="circuitButtons">'+button('save','カレンダーに保存','class="primary" '+(stats.tries?'':'disabled'))+button('back','実施に戻る')+'</div>';
   }
   function render(){
     if(screen==='setup')initial();
@@ -117,7 +117,7 @@ export function installGradeCircuit({api,getGyms}){
     else if(a==='sent'||a==='fall'||a==='undo'){
       const next=structuredClone(session);
       if(a==='undo'){selection=next.undo.index;undoCircuitTry(next);say('直前のトライを戻しました。');}
-      else{recordCircuitTry(next,selection,a==='sent');say(circuitLabel(next.routes[selection])+'の'+(a==='sent'?'完登':'トライ')+'を記録しました。');}
+      else{recordCircuitTry(next,selection,a==='sent');say(circuitLabel(next.routes[selection])+'の'+(a==='sent'?'完登':'トライ')+'を端末に保存しました。');}
       write(next);
     }
     render();

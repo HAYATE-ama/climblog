@@ -29,7 +29,7 @@ export function circuitTotal(value){
 
 export function createCircuit({date,gym,grade,swatch,total,numbered}){
   if(!gym?.trim()||!grade?.trim())throw new Error('ジムとグレードを選んでください。');
-  const session={version:1,id:newId(),date:validateRecordDate(date),gym,grade,swatch,total:circuitTotal(total),routes:[]};
+  const session={version:2,id:newId(),date:validateRecordDate(date),gym,grade,swatch,total:circuitTotal(total),routes:[]};
   if(numbered&&session.total)addCircuitRoutes(session,'number',circuitNumbers('1-'+session.total),'');
   return session;
 }
@@ -42,7 +42,7 @@ export function addCircuitRoutes(session,kind,marks,wall){
     let mark=clean(input);
     if(kind==='tape')mark=tapeShapes.find(([symbol])=>clean(symbol)===mark)?.[0]??mark;
     if(!mark||mark.length>32||location.length>60)throw new Error('課題の目印と壁・位置を確認してください。');
-    const route={kind,mark,wall:location,tries:0,sent:false},key=identity(route);
+    const route={kind,mark,wall:location,tries:0,sends:0},key=identity(route);
     if(!known.has(key)){known.set(key,session.routes.length+fresh.length);fresh.push(route);}
     first??=known.get(key);
   }
@@ -62,25 +62,31 @@ export function validCircuitMark(r){
     (r.kind==='number'?/^[1-9]\d{0,2}$/.test(r.mark):r.kind==='tape'&&r.mark.trim().length>0&&r.mark.length<=32));
 }
 export function circuitStats(s){
-  return s.routes.reduce((a,r)=>({sends:a.sends+Number(r.sent),tries:a.tries+r.tries}),{sends:0,tries:0});
+  return s.routes.reduce((a,r)=>({sends:a.sends+r.sends,tries:a.tries+r.tries,completed:a.completed+Number(r.sends>0),falls:a.falls+r.tries-r.sends}),{sends:0,tries:0,completed:0,falls:0});
 }
 export function recordCircuitTry(s,index,sent){
   const r=s.routes[index];
-  if(!r||r.sent)throw new Error('未完登の課題を選んでください。');
-  s.undo={index,tries:r.tries,sent:r.sent};
-  r.tries++;r.sent=sent;
+  if(!r||typeof sent!=='boolean')throw new Error('課題を選んでください。');
+  if(!Number.isSafeInteger(r.tries+1))throw new Error('記録できる回数を超えました。ここまでで終了して保存してください。');
+  s.undo={index,tries:r.tries,sends:r.sends};
+  r.tries++;if(sent)r.sends++;
 }
 export function undoCircuitTry(s){
   if(!s.undo)return;
-  const {index,tries,sent}=s.undo;Object.assign(s.routes[index],{tries,sent});delete s.undo;
+  const {index,tries,sends}=s.undo;Object.assign(s.routes[index],{tries,sends});delete s.undo;
 }
 
 export function parseCircuitDraft(raw){
   const s=JSON.parse(raw);
-  if(s?.version!==1||typeof s.id!=='string'||!s.id||typeof s.gym!=='string'||!s.gym||typeof s.grade!=='string'||!s.grade||!Array.isArray(s.routes)||s.routes.length>maxRoutes)throw new Error('下書きの形式を確認できません。');
+  if(![1,2].includes(s?.version)||typeof s.id!=='string'||!s.id||typeof s.gym!=='string'||!s.gym||typeof s.grade!=='string'||!s.grade||!Array.isArray(s.routes)||s.routes.length>maxRoutes)throw new Error('下書きの形式を確認できません。');
+  if(s.version===1){
+    for(const r of s.routes){if(typeof r?.sent!=='boolean')throw new Error('下書きの課題を確認できません。');r.sends=Number(r.sent);delete r.sent;}
+    if(s.undo){if(typeof s.undo.sent==='boolean')s.undo.sends=Number(s.undo.sent);delete s.undo.sent;}
+    s.version=2;
+  }
   validateRecordDate(s.date);s.total=circuitTotal(s.total);
-  if((s.total!==null&&s.routes.length>s.total)||s.routes.some(r=>!validCircuitMark(r)||!Number.isSafeInteger(r.tries)||r.tries<0||typeof r.sent!=='boolean'||(r.sent&&!r.tries))||new Set(s.routes.map(identity)).size!==s.routes.length)throw new Error('下書きの課題を確認できません。');
-  if(s.undo&&(!s.routes[s.undo.index]||s.undo.tries!==s.routes[s.undo.index].tries-1||s.undo.sent!==false))delete s.undo;
+  if((s.total!==null&&s.routes.length>s.total)||s.routes.some(r=>!validCircuitMark(r)||!Number.isSafeInteger(r.tries)||r.tries<0||!Number.isSafeInteger(r.sends)||r.sends<0||r.sends>r.tries)||new Set(s.routes.map(identity)).size!==s.routes.length)throw new Error('下書きの課題を確認できません。');
+  if(s.undo){const u=s.undo,r=s.routes[u.index];if(!r||!Number.isSafeInteger(u.index)||u.tries!==r.tries-1||!Number.isSafeInteger(u.sends)||u.sends<0||u.sends>u.tries||![0,1].includes(r.sends-u.sends))delete s.undo;}
   return s;
 }
 
@@ -89,8 +95,8 @@ export function parseCircuitDraft(raw){
 export function circuitRecords(s,now=new Date().toISOString()){
   return s.routes.flatMap((r,i)=>r.tries?[{
     id:'circuit-'+s.id+'-'+i,date:s.date,kind:'gym',gymName:s.gym,place:s.gym,grade:s.grade,
-    gradeLabelSnapshot:s.grade,swatch:s.swatch,colorSnapshot:s.swatch,tries:r.tries,sends:Number(r.sent),
-    gymOutcome:r.sent?'completed':'failed',memo:circuitLabel(r),batchSessionId:s.id,recordSource:'manual',
+    gradeLabelSnapshot:s.grade,swatch:s.swatch,colorSnapshot:s.swatch,tries:r.tries,sends:r.sends,
+    gymOutcome:r.sends?'completed':'failed',memo:circuitLabel(r),batchSessionId:s.id,recordSource:'manual',
     circuitRoute:{kind:r.kind,mark:r.mark,wall:r.wall},circuitTotal:s.total,
     createdAt:now,updatedAt:now
   }]:[]);

@@ -11,7 +11,8 @@ test("main navigation has no workspace label and settings contain gym management
   assert.match(html, /id="openGymSettings"/);
   assert.match(html, /id="gymSettingsView"/);
   assert.match(html, /id="exportData"/);
-  assert.match(html, /id="signOut"/);
+  assert.doesNotMatch(html, /id="(?:signOut|authSubmit|authPassword)"/);
+  assert.match(html, /この端末に自動保存/);
 });
 
 test("all static app selectors resolve to unique HTML IDs", () => {
