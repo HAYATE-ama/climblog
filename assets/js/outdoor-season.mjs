@@ -25,10 +25,10 @@ export function classifyOutdoorSends(records){const result=new Map();const sends
 }
 export function outdoorDanSummary(records,range){const classification=classifyOutdoorSends(records),newKeys=new Set(),repeatDays=new Set(),completeDays=new Set();let newDan=0,repeatDan=0,newProblems=0,repeatAscents=0,unknown=0,inferred=0,ungraded=0,duplicateNew=0;const entries=[];
  for(const r of (records||[]).filter(r=>isOutdoorSend(r)&&seasonDate(r.date)&&r.date>=range.from&&r.date<=range.to).sort(chronological)){
-  const c=classification.get(r.id),dan=danValue(r),key=c.key||'record:'+r.id;let counted=false;const dayKey=JSON.stringify([key,r.date]),duplicate=completeDays.has(dayKey);completeDays.add(dayKey);
-  if(duplicate){entries.push({id:r.id,...c,dan,counted:false,duplicate:true});continue;}
-  if(c.type==='unknown')unknown++;else if(c.type==='new'){if(newKeys.has(key))duplicateNew++;else{newKeys.add(key);newProblems++;if(dan!=null){newDan+=dan;counted=true;}}}else{const daily=JSON.stringify([key,r.date]);if(!repeatDays.has(daily)){repeatDays.add(daily);repeatAscents++;if(dan!=null){repeatDan+=dan;counted=true;}}}
-  if(c.inferred)inferred++;if(dan==null)ungraded++;entries.push({id:r.id,...c,dan,counted});
+  const c=classification.get(r.id),dan=danValue(r),key=c.key||'record:'+r.id;let counted=false,included=false;const dayKey=JSON.stringify([key,r.date]),duplicate=completeDays.has(dayKey);completeDays.add(dayKey);
+  if(duplicate){entries.push({id:r.id,...c,dan,counted:false,included:false,duplicate:true});continue;}
+  if(c.type==='unknown')unknown++;else if(c.type==='new'){if(newKeys.has(key))duplicateNew++;else{newKeys.add(key);newProblems++;included=true;if(dan!=null){newDan+=dan;counted=true;}}}else{const daily=JSON.stringify([key,r.date]);if(!repeatDays.has(daily)){repeatDays.add(daily);repeatAscents++;included=true;if(dan!=null){repeatDan+=dan;counted=true;}}}
+  if(c.inferred)inferred++;if(dan==null)ungraded++;entries.push({id:r.id,...c,dan,counted,included});
  }
  return {newDan,repeatDan,totalDan:newDan+repeatDan,newProblems,repeatAscents,unknown,inferred,ungraded,duplicateNew,entries};
 }
