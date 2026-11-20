@@ -1,28 +1,105 @@
-import {paintLandscape} from './home-landscape.mjs';
-// Retain the painter contract for existing previews and reduced-motion tests.
-export function paintRoom(ctx,time=0,action='idle',keepsakes=0,period='day'){paintLandscape(ctx,time,action,period);}
-export function roomPeriod(hour){return hour<5||hour>=20?'night':hour<10?'morning':hour<17?'day':'evening';}
-export function installPixelCompanion(){
- if(window.climbLogCompanion)return;
- let canvas=null,raf=0,last=0,frame=0,action='idle',until=0,idleAt=0,talkIndex=0,toastTimer=0;
- const reduced=matchMedia('(prefers-reduced-motion: reduce)');
- const lines=['おかえり。君のペースで、ゆっくりいこう。','会いに来てくれて、うれしいよ。','次の一手は、あわてずに。','ひと息つこう。休む時間も大切だよ。'];
- const messages={celebrate:'記録できたね！今日の一歩、おつかれさま。',write:'今日の気づき、大切にしまっておこう。',rest:lines[3],climb:'次の一手を考え中。君のペースで進もう。',walk:'少し歩いて、気分転換。',wave:lines[1]};
- const visible=()=>canvas?.isConnected&&!document.hidden&&!document.getElementById('homeView')?.hidden&&!document.getElementById('appRoot')?.hidden;
- function speech(text){const el=document.getElementById('companionSpeech');if(el)el.textContent=text||messages[action]||lines[0];}
- function paint(){if(!canvas)return;const now=new Date(),moment=document.getElementById('homeMoment'),period=roomPeriod(now.getHours()),label=(now.getMonth()+1)+'月'+now.getDate()+'日・'+({morning:'朝',day:'昼',evening:'夕方',night:'夜'})[period];if(moment){moment.dateTime=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');if(moment.textContent!==label)moment.textContent=label;}canvas.dataset.action=action;canvas.dataset.period=period;canvas.dataset.motion=reduced.matches?'reduced':'animated';paintRoom(canvas.getContext('2d'),reduced.matches?0:frame,action,0,canvas.dataset.period);}
- function expire(){if(until&&Date.now()>=until){action='idle';until=0;idleAt=Date.now();speech();}}
- function loop(now){raf=0;if(!visible())return;if(reduced.matches){paint();return;}expire();if(now-last>=125){last=now;frame++;if(!until&&Date.now()-idleAt>20000){action=['climb','write','rest','walk'][Math.floor(frame/8)%4];until=Date.now()+5000;speech();}paint();}raf=requestAnimationFrame(loop);}
- function sync(){cancelAnimationFrame(raf);raf=0;if(!visible())return;expire();paint();if(!reduced.matches)raf=requestAnimationFrame(loop);}
- function react(next,text){action=next;until=next==='idle'?0:Date.now()+6000;idleAt=Date.now();speech(text);sync();}
- function mount(){canvas=document.getElementById('pixelRoom');frame=0;idleAt=Date.now();expire();speech();sync();}
- window.addEventListener('climblog:homeRendered',mount);
- window.addEventListener('climblog:companion',e=>{if(e.detail==='idle'&&action==='celebrate'&&until>Date.now())return;if(['idle','climb','write','rest','celebrate'].includes(e.detail))react(e.detail);});
- window.addEventListener('climblog:recordSaved',e=>{react('celebrate');if(e.detail?.recordIds?.length&&document.getElementById('recordFeedback'))return;let toast=document.getElementById('recordCelebration');if(!toast){toast=document.createElement('div');toast.id='recordCelebration';toast.className='recordCelebration';toast.setAttribute('role','status');document.body.append(toast);}toast.textContent=e.detail?.isNew?'✦ 記録をノートに残しました！':'✦ 記録を更新しました';toast.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>toast.hidden=true,4000);});
- document.addEventListener('click',e=>{if(e.target.closest('[data-talk-companion]'))react('wave',lines[1+(talkIndex++%3)]);});
- document.addEventListener('visibilitychange',sync);reduced.addEventListener('change',sync);
- const home=document.getElementById('homeView'),root=document.getElementById('appRoot');const observer=new MutationObserver(sync);for(const el of [home,root])if(el)observer.observe(el,{attributes:true,attributeFilter:['hidden']});
- window.addEventListener('climblog:authLock',()=>{cancelAnimationFrame(raf);raf=0;clearTimeout(toastTimer);const toast=document.getElementById('recordCelebration');if(toast)toast.hidden=true;});
- window.addEventListener('pageshow',sync);window.addEventListener('pagehide',()=>{cancelAnimationFrame(raf);raf=0;});
- window.climbLogCompanion={refresh:sync};mount();
+import {createCampRenderer} from './home-landscape.mjs';
+
+export function installPixelCompanion() {
+  if (window.climbLogCompanion) return;
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+  let canvas=null, renderer=null, frameId=0, lastFrame=null, intersecting=false;
+  let ready=false, paused=false, locked=false, pageHidden=false, toastTimer=0, messageUntil=0;
+  const visible = () => canvas?.isConnected && intersecting && !document.hidden && !pageHidden && !locked
+    && !document.getElementById('homeView')?.hidden && !document.getElementById('appRoot')?.hidden;
+  const running = () => ready && visible() && !paused && !reduced.matches;
+  function speech(text) {
+    if (Date.now()<messageUntil) return;
+    const el=document.getElementById('companionSpeech');
+    if (el && el.textContent!==text) el.textContent=text;
+  }
+  function feedback(text) {
+    messageUntil=0;speech(text);messageUntil=Date.now()+6000;
+  }
+  function stop() {cancelAnimationFrame(frameId);frameId=0;lastFrame=null;}
+  function paintDate() {
+    const now=new Date(),el=document.getElementById('homeMoment');
+    if (!el) return;
+    el.dateTime=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+    const label=(now.getMonth()+1)+'月'+now.getDate()+'日・'+['日','月','火','水','木','金','土'][now.getDay()]+'曜日';
+    if (el.textContent!==label) el.textContent=label;
+  }
+  function loop(now) {
+    frameId=0;
+    if (!running()) {lastFrame=null;return;}
+    if (lastFrame===null) lastFrame=now;
+    if (now-lastFrame>=1000/24) {
+      const dt=Math.min(.1,(now-lastFrame)/1000);lastFrame=now;
+      renderer.render(dt);paintDate();
+    }
+    frameId=requestAnimationFrame(loop);
+  }
+  function sync() {
+    stop();paintDate();
+    if (canvas) canvas.dataset.motion=reduced.matches?'reduced':paused?'paused':running()?'animated':'paused';
+    const button=document.querySelector('[data-camp-pause]');
+    if (button) {
+      button.hidden=reduced.matches || !ready;
+      button.textContent=paused?'▶':'Ⅱ';
+      button.setAttribute('aria-label',paused?'ホームのアニメーションを再開':'ホームのアニメーションを一時停止');
+      button.title=button.getAttribute('aria-label');
+      button.setAttribute('aria-pressed',String(paused));
+    }
+    if (running()) frameId=requestAnimationFrame(loop);
+  }
+  const intersection=new IntersectionObserver(entries=>{
+    const entry=entries.find(entry=>entry.target===canvas?.parentElement);
+    if (entry) {intersecting=entry.isIntersecting;sync();}
+  });
+  function mount() {
+    stop();intersection.disconnect();renderer?.dispose();ready=false;intersecting=false;
+    canvas=document.getElementById('pixelRoom');
+    if (!canvas) {renderer=null;return;}
+    const current=canvas,scene=canvas.parentElement;
+    // Bound the backing store on high-DPI phones, instead of using the full device pixel ratio.
+    canvas.width=Math.min(1000,Math.max(600,Math.round(scene.clientWidth*1.5)));
+    canvas.height=Math.round(canvas.width*.6);
+    const currentRenderer=createCampRenderer(canvas,{
+      onCaption:speech,
+      onWeather:label=>{const el=scene.querySelector('.campWeatherName');if(el)el.textContent=label;},
+    });
+    renderer=currentRenderer;intersection.observe(scene);sync();
+    currentRenderer.ready.then(loaded=>{
+      if (canvas!==current || renderer!==currentRenderer) return;
+      ready=loaded;
+      if (loaded) {scene.dataset.ready='true';currentRenderer.render(reduced.matches?10:0);}
+      else speech('景色は読み込めませんでしたが、記録はいつもどおり使えます。');
+      sync();
+    });
+  }
+  window.addEventListener('climblog:homeRendered',mount);
+  document.addEventListener('click',event=>{
+    if (event.target.closest('[data-camp-pause]')) {paused=!paused;sync();}
+  });
+  // Save feedback never changes the randomly chosen weather or action.
+  window.addEventListener('climblog:companion',event=>{
+    if (event.detail==='write') feedback('今日の気づき、大切にしまっておこう。');
+  });
+  window.addEventListener('climblog:recordSaved',event=>{
+    feedback('記録できたね！今日の一歩、おつかれさま。');
+    if (event.detail?.recordIds?.length && document.getElementById('recordFeedback')) return;
+    let toast=document.getElementById('recordCelebration');
+    if (!toast) {toast=document.createElement('div');toast.id='recordCelebration';toast.className='recordCelebration';toast.setAttribute('role','status');document.body.append(toast);}
+    toast.textContent=event.detail?.isNew?'✦ 記録をノートに残しました！':'✦ 記録を更新しました';
+    toast.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>toast.hidden=true,4000);
+  });
+  document.addEventListener('visibilitychange',sync);
+  reduced.addEventListener('change',sync);
+  const observer=new MutationObserver(sync);
+  for (const el of [document.getElementById('homeView'),document.getElementById('appRoot')]) {
+    if (el) observer.observe(el,{attributes:true,attributeFilter:['hidden']});
+  }
+  window.addEventListener('climblog:authLock',()=>{
+    locked=true;sync();clearTimeout(toastTimer);
+    const toast=document.getElementById('recordCelebration');if(toast)toast.hidden=true;
+  });
+  window.addEventListener('pagehide',()=>{pageHidden=true;sync();});
+  window.addEventListener('pageshow',()=>{pageHidden=false;sync();});
+  window.climbLogCompanion={refresh:sync};
+  mount();
 }
