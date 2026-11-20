@@ -1,5 +1,5 @@
 importScripts('./assets/js/offline-assets.js');
-const CACHE='climblog-shell-20261120-outdoor-graphs-'+self.registration.scope;
+const CACHE='climblog-shell-20261120-circuit-timing-'+self.registration.scope;
 const SHELL=['./','./index.html','./config.js','./manifest.webmanifest',...self.climbLogOfflineAssets];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL))));
 self.addEventListener('activate',event=>event.waitUntil(Promise.all([caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith('climblog-shell-')&&key.endsWith(self.registration.scope)&&key!==CACHE).map(key=>caches.delete(key)))),self.clients.claim()])));

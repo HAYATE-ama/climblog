@@ -90,3 +90,33 @@ body[data-theme=light] #workoutView[data-timer-state=rest]{--timerSurface:#e3f5e
 .circuitIncrement{display:inline-block;white-space:nowrap}
 .gradeCircuit summary{padding:10px 0;min-height:44px;cursor:pointer}.gradeCircuit details form{margin-bottom:10px}
 .gradeCircuit .circuitMessage:not(:empty){position:sticky;bottom:0;padding:8px 16px;border-top:1px solid var(--line);background:var(--panel);font-size:.85rem}
+.gradeCircuit{width:min(32rem,calc(100% - 20px))}
+.circuitTabs{display:flex;gap:18px;border-bottom:1px solid var(--line)}
+.gradeCircuit .circuitTabs button{padding:8px 0;border:0;border-bottom:3px solid transparent;border-radius:0;background:transparent;color:var(--muted)}
+.gradeCircuit .circuitTabs button[aria-pressed=true]{box-shadow:none;border-bottom-color:var(--orange);color:var(--text)}
+.circuitMeta{display:grid;gap:3px}.circuitMeta small{color:var(--muted)}
+.circuitTimer{padding:14px;border:1px solid var(--line);border-radius:16px;background:var(--panel2);display:grid;gap:10px}
+.circuitTimer[data-phase=climb]{background:color-mix(in srgb,#e0564d 14%,var(--panel))}
+.circuitTimer[data-phase=rest]{background:color-mix(in srgb,#39935a 14%,var(--panel))}
+.circuitTimer [data-clock-label],.circuitTimer [data-clock-status]{font-size:.85rem}
+.circuitClock{font-size:2.7rem;line-height:1.15;font-variant-numeric:tabular-nums;letter-spacing:-.04em}
+.circuitTimeTotals{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:4px 0}
+.circuitTimeTotals span{font-size:.75rem;color:var(--muted)}
+.circuitTimeTotals strong{display:block;font-size:1.3rem;color:var(--text);font-variant-numeric:tabular-nums}
+.circuitMilestone{display:grid;gap:4px;padding:12px;border-radius:12px;background:color-mix(in srgb,#39935a 15%,var(--panel))}
+.circuitProgress{display:flex;align-items:baseline;justify-content:space-between;border:0;padding:0;background:transparent;gap:8px}
+.circuitProgress b{font-size:1.7rem}
+.circuitProgressTrack{height:6px;background:var(--line);border-radius:5px;overflow:hidden}.circuitProgressTrack span{display:block;height:100%;background:var(--orange)}
+.circuitGrid{gap:8px}.circuitGrid .circuitTile{display:grid;gap:4px;padding:8px 3px;min-height:58px;border-radius:12px}
+.circuitTile strong{font-size:1.05rem}.circuitTile small{font-size:.7rem;color:var(--muted)}
+.circuitGrid .circuitTile[data-state=sent]{background:color-mix(in srgb,var(--orange) 13%,var(--panel));border-color:transparent}
+.circuitGrid .circuitTile[data-state=tried]{background:var(--panel2)}
+.circuitCurrent{display:grid;gap:12px;border:0;padding:4px 0;background:transparent}.circuitCurrent small{color:var(--muted);font-size:.8rem}.circuitCurrent button{min-height:50px}
+.gradeCircuit textarea{width:100%;min-width:0;box-sizing:border-box;resize:vertical;padding:12px;font:inherit;font-size:16px;border:1px solid var(--line);border-radius:10px;color:var(--text);background:var(--panel2)}
+.circuitNotes{border-top:1px solid var(--line);border-bottom:1px solid var(--line)}.circuitNotes label{margin-bottom:14px}.circuitNotes summary small{float:right}
+.gradeCircuit .circuitCheck{display:flex;align-items:center;gap:10px}.gradeCircuit .circuitCheck input{width:22px;height:22px}
+.circuitSettings{font-size:.85rem}.circuitSettings>button{margin-bottom:14px}.circuitSettings p{margin-bottom:12px}
+.circuitReviewTime{display:grid;gap:12px;padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--panel2)}
+.circuitHistoryItem{border-bottom:1px solid var(--line);padding-bottom:10px}.circuitHistoryItem summary{display:flex;align-items:center;justify-content:space-between;gap:12px;list-style:none}.circuitHistoryItem summary::-webkit-details-marker{display:none}.circuitHistoryItem summary span{display:grid;gap:3px}.circuitHistoryItem summary span:last-child{text-align:right}.circuitHistoryItem small{color:var(--muted)}.circuitHistoryItem p{margin:10px 0}
+.circuitNoteText{white-space:pre-wrap;overflow-wrap:anywhere}.gradeCircuit li{margin-bottom:9px}
+.circuitHistoryLink{min-height:44px;margin:8px 0;padding:8px 12px}

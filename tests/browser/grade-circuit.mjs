@@ -30,7 +30,7 @@ try{
     const doAct=async a=>{await d.locator('[data-circuit="'+a+'"]').click();await p.evaluate(()=>navigator.locks.request('climbLogGradeCircuit:test-circuit',()=>{}));};
     const open=async()=>{await p.locator('#calendarTab').click();await p.locator('#calendarView [data-open-workout]').click();await p.locator('[data-workout-act=grade-circuit]').click()};
     await p.goto(url);await p.waitForFunction(()=>window.testReady);await open();
-    await d.locator('[name=total]').fill('12');await d.getByRole('button',{name:'サーキットを開始'}).click();
+    await d.locator('[name=total]').fill('12');await d.locator('[name=timed]').uncheck();await d.getByRole('button',{name:'サーキットを開始'}).click();
     await d.locator('[data-route-index="11"]').waitFor();assert.equal(await d.locator('[data-route-index]').count(),12);
     const tile=i=>d.locator('[data-route-index="'+i+'"]');await tile(7).click();await doAct('fall');await doAct('fall');
     await doAct('close');await p.reload();await p.waitForFunction(()=>window.testReady);await open();
@@ -39,11 +39,11 @@ try{
     assert.match(await d.locator('.circuitCurrent').innerText(),/完登 3回.*途中落ち 3回/);
     assert.match(await tile(7).innerText(),/3回/);await doAct('filter');
     await tile(7).waitFor({state:'detached'});assert.equal(await d.locator('[data-route-index]').count(),11);
-    await d.locator('details summary').click();await d.locator('[name=total]').fill('');await d.getByRole('button',{name:'総課題数を変更'}).click();
+    await d.locator('.circuitSettings summary').click();await d.locator('[name=total]').fill('');await d.getByRole('button',{name:'総課題数を変更'}).click();await d.locator('.circuitSettings summary').click();
     await doAct('add');await doAct('tape');await d.locator('[data-shape="＋"]').click();
     await d.locator('[name=wall]').fill('ルーフ左');await d.locator('form button.primary').click();
     await d.locator('.circuitCurrent').filter({hasText:'ルーフ左 · ＋'}).waitFor();await doAct('fall');
-    await doAct('add');await d.locator('[name=wall]').fill('ルーフ左');await d.locator('form button.primary').click();
+    await d.locator('.circuitSettings summary').click();await doAct('add');await d.locator('[name=wall]').fill('ルーフ左');await d.locator('form button.primary').click();
     await d.locator('.circuitCurrent').waitFor();assert.equal(await d.locator('[data-route-index]').count(),13);
     assert.deepEqual(await p.evaluate(()=>window.climbLogStateApi.get().records),[]);
     assert.ok(await d.evaluate(e=>e.scrollWidth<=e.clientWidth+1));

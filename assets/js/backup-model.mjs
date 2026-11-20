@@ -1,5 +1,5 @@
 import {validateWish} from './outdoor-wishlist-model.mjs';
-import {validCircuitMark,circuitTotal} from './grade-circuit.mjs';
+import {validCircuitMark,circuitTotal,parseCircuitDraft,circuitRecords} from './grade-circuit.mjs';
 import {outdoorProblemKey} from './outdoor-season.mjs';
 import {validateOutdoorSeason} from './outdoor-season.mjs';
 import {normalizeCourse,normalizeCourseStep,normalizeBefore,normalizeAfter,normalizeObservation} from './day-course-data.mjs';
@@ -51,6 +51,7 @@ const recordValid=row=>{if(row?.ascentType!=null&&!['new','repeat'].includes(row
  for(const row of value.trainingPresets||[])if(typeof row.name!=='string'||!row.fields||typeof row.fields!=='object'||!['hangboard','singleHandLift','weightedPullup'].includes(row.fields.maxType))throw new Error('測定条件の形式が不正です。');
  for(const row of value.trainingMenus||[]){if(row.workoutPlan)normalizeWorkoutPlan(row.workoutPlan);if(typeof row.name!=='string'||!Array.isArray(row.entries)||!row.entries.length)throw new Error('メニューの形式が不正です。');for(const entry of row.entries){if(!entry||typeof entry!=='object'||Array.isArray(entry)||entry.kind!=='training'||entry.trainingMode!=='routine'||typeof entry.exerciseName!=='string')throw new Error('メニューの種目が不正です。');validateNumericTypes(entry,recordNumericFields,'メニュー');validateTrainingArrays(entry);}}
  for(const row of value.workoutReceipts||[]){if(!dateValid(row.date)||!Array.isArray(row.recordIds)||row.recordIds.some(id=>!idValid(id)))throw new Error('実行記録の保存履歴が不正です。');if(row.courseSession){const session=row.courseSession;if(!session.plan?.course)throw new Error('コース実施の構成・版がありません。');normalizeWorkoutPlan(session.plan);normalizeBefore(session.before);normalizeAfter(session.after);if(!Array.isArray(session.results)||!['completed','shortened','stopped'].includes(session.completion))throw new Error('コース実施の保存履歴が不正です。');validateTrainingArrays({sessionSetResults:session.results});}}
+ for(const row of value.workoutReceipts||[])if(row.circuitSession){const s=parseCircuitDraft(JSON.stringify(row.circuitSession));if(row.id!=='circuit-'+s.id||row.date!==s.date||(s.timing&&!s.timing.ended)||JSON.stringify(row.recordIds)!==JSON.stringify(circuitRecords(s).map(r=>r.id)))throw new Error('サーキットの保存履歴を確認してください。');}
  for(const row of value.recycleBin||[])recordValid(row.record);
  for(const row of value.recordHistory||[]){if(!idValid(row.recordId)||!row.before&&!row.after)throw new Error('編集履歴の形式が不正です。');for(const r of [row.before,row.after])if(r){recordValid(r);if(r.id!==row.recordId)throw new Error('編集履歴のIDが一致しません。');}}
  if(value.preferences?.outdoorSeason!=null)validateOutdoorSeason(value.preferences.outdoorSeason);

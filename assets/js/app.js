@@ -31,7 +31,9 @@ function renderDetail(){
     const title=group.kind==='training'?'トレーニング':group.records[0].gymName||group.records[0].place;
     const text=group.kind==='training'?`${group.routineCount}種目 · ${group.sets}セット · ${group.minutes}分${group.measurementCount?` · 測定${group.measurementCount}件`:''}`:`完登${group.sends} · 敗退${group.failures} · ${group.tries}トライ`;
     const open=dayGroupOpen.get(group.key)??group.records.length===1;
-    return `<details class="dayRecordGroup" data-day-group="${escapeHtml(group.key)}" ${open?'open':''}><summary><strong>${escapeHtml(title)}</strong><span>${text}</span></summary><div class="dayGroupRecords">${group.kind==='training'?renderWorkoutRecordGroups(group.records):group.records.map(renderRecordCard).join('')}</div></details>`;
+    const circuitIds=new Set(readCollection(localStorage,'workoutReceipts').filter(r=>r.circuitSession).map(r=>r.circuitSession.id));
+    const circuitLinks=group.kind==='gym'?[...new Set(group.records.map(r=>r.batchSessionId).filter(id=>circuitIds.has(id)))].map(id=>`<button type="button" class="circuitHistoryLink" data-circuit-history="${escapeHtml(id)}" data-date="${escapeHtml(selected)}">サーキットの時間・備考を見る</button>`).join(''):'';
+    return `<details class="dayRecordGroup" data-day-group="${escapeHtml(group.key)}" ${open?'open':''}><summary><strong>${escapeHtml(title)}</strong><span>${text}</span></summary><div class="dayGroupRecords">${circuitLinks}${group.kind==='training'?renderWorkoutRecordGroups(group.records):group.records.map(renderRecordCard).join('')}</div></details>`;
   }).join('');
 }
 function renderStats(){let monthPrefix=`${current.getFullYear()}-${pad(current.getMonth()+1)}`,rs=records.filter(r=>r.date.startsWith(monthPrefix)),dates=new Set(rs.filter(r=>r.kind!=='training').map(r=>r.date));document.querySelector('#statDays').textContent=dates.size;document.querySelector('#statSends').textContent=rs.reduce((a,r)=>a+(+r.sends||0),0);document.querySelector('#statTry').textContent=rs.reduce((a,r)=>a+(+r.tries||0),0);document.querySelector('#statTrain').textContent=rs.filter(r=>r.kind==='training').length}
