@@ -4,18 +4,16 @@ import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import {createRequire} from 'node:module';
+import {campClips} from '../../assets/js/basecamp-model.mjs';
 const {chromium}=createRequire(import.meta.url)(process.env.CLIMBLOG_PLAYWRIGHT_MODULE||'playwright');
-const root=process.cwd(),artifacts=fs.mkdtempSync(path.join(os.tmpdir(),'climblog-camp-'));
+const root=process.cwd(),artifacts=fs.mkdtempSync(path.join(os.tmpdir(),'climblog-gif-'));
 const server=http.createServer((req,res)=>{
   const name=new URL(req.url,'http://localhost').pathname;
-  if(name==='/render.html'){
-    res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});
-    res.end(`<canvas id="scene" width="1000" height="600" style="max-width:100%"></canvas><p id="caption"></p><script type="module">import {createCampRenderer} from '/assets/js/home-landscape.mjs';window.renderer=createCampRenderer(document.querySelector('canvas'),{onCaption:text=>document.querySelector('p').textContent=text});window.ready=await renderer.ready;</script>`);return;
-  }
+  if(name==='/gif.html'){res.setHeader('Content-Type','text/html');res.end('<style>body{margin:0;background:#121212}img{width:600px;height:360px}</style><img alt="GIF test">');return;}
   if(!/^\/(?:index\.html|config\.js|service-worker\.js|manifest\.webmanifest|assets\/[\w./-]+)?$/.test(name)){res.writeHead(404);res.end();return;}
   const file=path.resolve(root,'.'+(name==='/'?'/index.html':name));
   if(!file.startsWith(root+path.sep)||!fs.existsSync(file)){res.writeHead(404);res.end();return;}
-  const type=/\.m?js$/.test(file)?'text/javascript':file.endsWith('.css')?'text/css':file.endsWith('.webp')?'image/webp':file.endsWith('.png')?'image/png':file.endsWith('.svg')?'image/svg+xml':file.endsWith('.webmanifest')?'application/manifest+json':'text/html';
+  const type=/\.m?js$/.test(file)?'text/javascript':file.endsWith('.css')?'text/css':file.endsWith('.gif')?'image/gif':file.endsWith('.webp')?'image/webp':file.endsWith('.png')?'image/png':file.endsWith('.svg')?'image/svg+xml':file.endsWith('.webmanifest')?'application/manifest+json':'text/html';
   res.writeHead(200,{'Content-Type':type,'Cache-Control':'no-store'});
   res.end(name==='/config.js'?'window.CLIMBLOG_CONFIG={};':fs.readFileSync(file));
 });
@@ -24,62 +22,79 @@ const origin='http://127.0.0.1:'+server.address().port;
 let browser;
 try{
   browser=await chromium.launch({executablePath:process.env.CLIMBLOG_BROWSER,headless:true});
-  const context=await browser.newContext({viewport:{width:1024,height:740},serviceWorkers:'block'});
+  const context=await browser.newContext({viewport:{width:620,height:400},serviceWorkers:'block'});
   await context.route('**/*',route=>route.request().url().startsWith(origin)?route.continue():route.abort());
-  await context.addInitScript(()=>{let seed=42;Math.random=()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296);});
   const page=await context.newPage(),errors=[];page.on('pageerror',error=>errors.push(error.message));
-  await page.goto(origin+'/render.html');await page.waitForFunction(()=>window.ready);
-  const activities=new Set(),weather=new Set(),pictures=new Set();
-  for(let i=0;i<450;i++){
-    const state=await page.evaluate(()=>{renderer.render(1);return {kind:document.querySelector('canvas').dataset.action,weather:document.querySelector('canvas').dataset.weather,caption:document.querySelector('p').textContent};});
-    activities.add(state.kind);weather.add(state.weather);
-    const central=/テントでのんびり|テントの中でひと休み|静かなひと休み|岩登りに夢中|遠くでコハクが泳いで|手を振って/.test(state.caption);
-    if(central&&!pictures.has(state.kind)){pictures.add(state.kind);await page.screenshot({path:path.join(artifacts,state.kind+'.png')});}
+  for(const clip of campClips){
+    await page.goto(origin+'/gif.html');
+    await page.locator('img').evaluate((img,src)=>{img.src=src;},origin+'/assets/images/basecamp/'+clip.id+'.gif');
+    await page.locator('img').evaluate(img=>img.decode());
+    const initial=await page.locator('img').screenshot();await page.waitForTimeout(450);
+    assert.notDeepEqual(await page.locator('img').screenshot(),initial,clip.id+' must visibly animate without Canvas');
+    if(['tent-rain','climb-sunset','swim-sunny'].includes(clip.id)){
+      await page.waitForTimeout(4500);await page.screenshot({path:path.join(artifacts,clip.id+'.png')});
+    }
   }
-  assert.equal(activities.size,4);assert.equal(weather.size,6);assert.equal(pictures.size,4);
-  await page.evaluate(()=>renderer.dispose());
-  const disposed=await page.locator('canvas').evaluate(c=>c.toDataURL());
-  await page.evaluate(()=>renderer.render(30));assert.equal(await page.locator('canvas').evaluate(c=>c.toDataURL()),disposed);
   await context.close();
-
-  for(const mode of ['no-webgl','missing-image','lifecycle']){
-    const ctx=await browser.newContext({viewport:{width:390,height:844},serviceWorkers:'block'});
-    const external=[];ctx.on('request',request=>{if(!request.url().startsWith(origin))external.push(request.url());});
+  for(const mode of ['lifecycle','reduced','missing','slow']){
+    const ctx=await browser.newContext({viewport:{width:390,height:844},serviceWorkers:'block',reducedMotion:mode==='reduced'?'reduce':'no-preference'});
+    const external=[];let gifRequests=0;
+    ctx.on('request',request=>{if(!request.url().startsWith(origin))external.push(request.url());if(request.url().endsWith('.gif'))gifRequests++;});
     await ctx.route('**/*',route=>route.request().url().startsWith(origin)?route.continue():route.abort());
-    if(mode==='no-webgl')await ctx.addInitScript(()=>{const get=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(kind,...args){return kind==='webgl'?null:get.call(this,kind,...args);};});
-    if(mode==='missing-image')await ctx.route('**/walker.webp',route=>route.abort());
+    await ctx.addInitScript(()=>{
+      const create=URL.createObjectURL,revoke=URL.revokeObjectURL;window.activeGifUrls=new Set();
+      URL.createObjectURL=function(blob){const url=create.call(this,blob);activeGifUrls.add(url);return url;};
+      URL.revokeObjectURL=function(url){activeGifUrls.delete(url);return revoke.call(this,url);};
+    });
+    if(mode==='missing')await ctx.route('**/*.gif',route=>route.abort());
+    if(mode==='slow')await ctx.route('**/*.gif',async route=>{await new Promise(resolve=>setTimeout(resolve,700));await route.continue().catch(()=>{});});
     const p=await ctx.newPage();p.on('pageerror',error=>errors.push(error.message));await p.goto(origin+'/');
     await p.locator('.homeQuick').waitFor();
-    if(mode==='missing-image'){
-      await p.waitForFunction(()=>document.getElementById('companionSpeech').textContent.includes('読み込めません'));
+    assert.equal(await p.locator('.companionScene canvas,.campWeather,.homeKicker').count(),0);
+    const before=await p.evaluate(()=>JSON.stringify(localStorage));
+    if(mode==='missing'){
+      await p.waitForFunction(()=>document.getElementById('pixelRoom').dataset.motion==='error');
+      assert.equal(gifRequests,1);
+      await p.locator('#calendarTab').click();await p.locator('#homeTab').click();await p.waitForTimeout(500);
+      assert.equal(gifRequests,1,'no automatic retry after an error');
       assert.equal(await p.locator('.campPoster').isVisible(),true);
+      await p.locator('[data-camp-pause]').click();await p.waitForFunction(()=>document.getElementById('pixelRoom').dataset.motion==='error');assert.equal(gifRequests,2);
     }else{
-      await p.waitForSelector('.companionScene[data-ready]');
-      const image=()=>p.locator('#pixelRoom').evaluate(c=>c.toDataURL());
-      const initial=await image();await p.waitForTimeout(500);assert.notEqual(await image(),initial);
-      if(mode==='lifecycle'){
-        const before=await p.evaluate(()=>JSON.stringify(localStorage));
-        await p.evaluate(()=>{Object.defineProperty(document,'hidden',{value:true,configurable:true});document.dispatchEvent(new Event('visibilitychange'));});
-        const hidden=await image();await p.waitForTimeout(350);assert.equal(await image(),hidden);
-        await p.evaluate(()=>{Object.defineProperty(document,'hidden',{value:false,configurable:true});document.dispatchEvent(new Event('visibilitychange'));});
-        await p.waitForTimeout(350);assert.notEqual(await image(),hidden);
-        // Remounts while an image promise resolves must leave only the latest canvas active.
-        await p.evaluate(async()=>{const {renderHomeMarkup}=await import('/assets/js/home-screen.mjs');for(let i=0;i<5;i++){document.getElementById('homeCamp').innerHTML=renderHomeMarkup();window.dispatchEvent(new Event('climblog:homeRendered'));}});
-        await p.waitForSelector('.companionScene[data-ready]');
-        assert.equal(await p.locator('#pixelRoom').count(),1);
-        assert.equal(await p.evaluate(()=>JSON.stringify(localStorage)),before);
-        // Scrolling the scene out of view stops drawing, without changing the selected episode.
-        await p.evaluate(()=>{const spacer=document.createElement('div');spacer.style.height='2000px';document.body.append(spacer);window.scrollTo(0,2000);});
-        await p.waitForFunction(()=>document.getElementById('pixelRoom').dataset.motion==='paused');
-        const offscreen=await image();await p.waitForTimeout(350);assert.equal(await image(),offscreen);
-        await p.evaluate(()=>window.scrollTo(0,0));
-        await p.waitForFunction(()=>document.getElementById('pixelRoom').dataset.motion==='animated');
+      if(mode==='reduced'){
+        assert.equal(gifRequests,0);assert.equal(await p.locator('#pixelRoom').getAttribute('src'),null);
+        await p.getByRole('button',{name:'ホームのアニメーションを再生',exact:true}).click();
       }
+      if(mode==='slow'){
+        await p.locator('#calendarTab').click();await p.waitForTimeout(900);
+        assert.equal(await p.locator('#pixelRoom').getAttribute('src'),null);
+        assert.equal(await p.evaluate(()=>activeGifUrls.size),0);
+        await p.locator('#homeTab').click();
+      }
+      await p.waitForSelector('.companionScene[data-ready]');
+      assert.equal(await p.locator('#pixelRoom').evaluate(img=>img.tagName==='IMG'&&img.naturalWidth===600),true);
+      const first=await p.locator('.companionScene').screenshot();await p.waitForTimeout(450);
+      assert.notDeepEqual(await p.locator('.companionScene').screenshot(),first);
+      if(mode==='lifecycle'){
+        const initialClip=await p.locator('#pixelRoom').getAttribute('data-clip');
+        await p.waitForFunction(previous=>document.getElementById('pixelRoom').dataset.clip!==previous,initialClip,{timeout:18000});
+        assert.equal(await p.evaluate(()=>activeGifUrls.size),1);
+        const clip=await p.locator('#pixelRoom').getAttribute('data-clip');
+        await p.evaluate(()=>{Object.defineProperty(document,'hidden',{value:true,configurable:true});document.dispatchEvent(new Event('visibilitychange'));});
+        assert.equal(await p.locator('#pixelRoom').getAttribute('src'),null);assert.equal(await p.evaluate(()=>activeGifUrls.size),0);
+        await p.evaluate(()=>{Object.defineProperty(document,'hidden',{value:false,configurable:true});document.dispatchEvent(new Event('visibilitychange'));});
+        await p.waitForSelector('.companionScene[data-ready]');assert.equal(await p.locator('#pixelRoom').getAttribute('data-clip'),clip);
+        await p.evaluate(async()=>{const {renderHomeMarkup}=await import('/assets/js/home-screen.mjs');for(let i=0;i<5;i++){document.getElementById('homeCamp').innerHTML=renderHomeMarkup();window.dispatchEvent(new Event('climblog:homeRendered'));}});
+        await p.waitForSelector('.companionScene[data-ready]');assert.equal(await p.evaluate(()=>activeGifUrls.size),1);
+        await p.evaluate(()=>{const spacer=document.createElement('div');spacer.style.height='2000px';document.body.append(spacer);window.scrollTo(0,2000);});
+        await p.waitForFunction(()=>!document.getElementById('pixelRoom').hasAttribute('src'));assert.equal(await p.evaluate(()=>activeGifUrls.size),0);
+        await p.evaluate(()=>window.scrollTo(0,0));await p.waitForSelector('.companionScene[data-ready]');
+      }
+      await p.screenshot({path:path.join(artifacts,'home-'+mode+'.png')});
     }
-    await p.locator('.homeQuick>summary').click();await p.locator('[data-home-entry=gym]').click();
-    assert.equal(await p.locator('#modal').isVisible(),true);
+    assert.equal(await p.evaluate(()=>JSON.stringify(localStorage)),before);
+    await p.locator('.homeQuick>summary').click();await p.locator('[data-home-entry=gym]').click();assert.equal(await p.locator('#modal').isVisible(),true);
     assert.deepEqual(external,[]);await ctx.close();
   }
   assert.deepEqual(errors,[]);
-  console.log(JSON.stringify({artifacts,activities:[...activities],weather:[...weather],webglFallback:true,imageFailureKeepsRecording:true,hiddenAndOffscreenPaused:true,remountCleanup:true,noExternalRequests:true,errors},null,2));
-}finally{if(browser)await browser.close();await new Promise(resolve=>server.close(resolve));}
+  console.log(JSON.stringify({artifacts,nativeAnimatedGifs:campClips.length,randomAdvance:true,reducedMotionCanPlay:true,failedImageDoesNotBlockRecording:true,noAutomaticRetry:true,hiddenAndOffscreenUnloaded:true,cancelledLoadAndRemountSafe:true,objectUrlsReleased:true,noExternalRequests:true,errors},null,2));
+}finally{await browser?.close();await new Promise(resolve=>server.close(resolve));}

@@ -39,7 +39,7 @@ test('adventure badges reflect actual notes and matched personal bests, with no 
 });
 test('home keeps an original companion scene, short speech and explicit activity choices without private records',()=>{
  const html=renderHomeMarkup([{memo:'private note'}],{focus:'private goal'},'2026-10-25');
- assert.match(html,/id="pixelRoom"/);assert.match(html,/id="companionSpeech"/);assert.doesNotMatch(html,/data-talk-companion/);assert.match(html,/天気の演出/);
+ assert.match(html,/id="pixelRoom"/);assert.match(html,/id="companionSpeech"/);assert.doesNotMatch(html,/data-talk-companion/);assert.doesNotMatch(html,/campWeather|homeKicker|<canvas/);assert.match(html,/class="campAnimation"/);
  assert.doesNotMatch(html,/private note|private goal|data-home-action|data-open-workout|memoryCard|campBadges|campQuest|FIELD NOTES/);
  assert.equal((html.match(/<button/g)||[]).length,4);assert.match(html,/data-home-entry="gym"/);assert.match(html,/data-home-entry="outdoor"/);assert.match(html,/data-home-entry="training"/);
 });
