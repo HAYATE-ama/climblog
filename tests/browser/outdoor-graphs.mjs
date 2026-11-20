@@ -29,7 +29,7 @@ try{
    const current=window.climbLogStateApi.get();window.climbLogStateApi.apply({records:window.__graphFixture,preferences:{...current.preferences,theme,outdoorAscentResetVersion:1,outdoorSeason:{name:'秋冬シーズン',from:'2026-10-01',to:'2027-03-31'}}});
   },theme);
   const before=await page.evaluate(()=>JSON.stringify(window.climbLogStateApi.get().records));
-  await page.locator('#statsTab').click();await page.locator('[data-stats-topic=outdoor]').click();
+  await page.locator('#statsTab').click();await page.locator('[data-stats-quick=outdoor]').click();
   assert.equal(await page.locator('#outdoorDanValue').innerText(),'15段');assert.match(await page.locator('#outdoorDanSummary').innerText(),/再登込み18段/);
   assert.equal(await page.locator('.outdoorGradeBar').count(),6);assert.equal(await page.locator('.statsSourceCard').isVisible(),false);assert.equal(await page.locator('#statsOverview').isVisible(),false);
   const heights=[];
@@ -51,7 +51,7 @@ try{
   await page.locator('#outdoorAllRecords').click();await page.locator('[data-stats-record=r1]').click();await page.locator('[data-viewer-action=delete]').click();if(await page.locator('#recordViewer').isVisible())await page.locator('[data-viewer-action=close]').click();assert.match(await page.locator('#outdoorDanSummary').innerText(),/再登込み15段/);
   // Custom dates still save, reject invalid ranges, and survive a reload.
   await page.locator('#outdoorSeasonSettings summary').click();await page.locator('#outdoorSeasonTo').fill('2026-09-01');await page.locator('#saveOutdoorSeason').click();assert.match(await page.locator('#outdoorSeasonStatus').innerText(),/終了日/);await page.locator('#outdoorSeasonTo').fill('2027-03-31');await page.locator('#saveOutdoorSeason').click();
-  await page.reload();await page.waitForFunction(()=>window.climbLogAuthReady===true);await page.locator('#statsTab').click();await page.locator('[data-stats-topic=outdoor]').click();assert.equal(await page.locator('#outdoorSeason').inputValue(),'custom');assert.equal(await page.locator('#outdoorDanValue').innerText(),'14段');
+  await page.reload();await page.waitForFunction(()=>window.climbLogAuthReady===true);await page.locator('#statsTab').click();await page.locator('[data-stats-quick=outdoor]').click();assert.equal(await page.locator('#outdoorSeason').inputValue(),'custom');assert.equal(await page.locator('#outdoorDanValue').innerText(),'14段');
   // More than six grades/crags, foreign scales, long names and hostile text stay inspectable.
   await page.evaluate(()=>{
    const grades=['1級','初段-','初段','初段+','初/二段','二段-','二段','二段+','二/三段','三段'];

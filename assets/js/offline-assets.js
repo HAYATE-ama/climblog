@@ -4,6 +4,7 @@ self.climbLogOfflineAssets=[
   "./assets/css/coach.css",
   "./assets/css/compact-layout.css",
   "./assets/css/interface.css",
+  "./assets/css/modern-layout.css",
   "./assets/css/outdoor-wishlist.css",
   "./assets/css/pixel-life.css",
   "./assets/css/record-view.css",
