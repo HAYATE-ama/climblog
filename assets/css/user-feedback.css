@@ -1,0 +1,44 @@
+/* Local feedback uses the same theme tokens as the rest of the app. */
+#appRoot>header .feedbackButton{display:grid;place-items:center;width:44px;height:44px;min-width:44px;padding:10px;border:1px solid var(--line);border-radius:14px;background:var(--panel);color:var(--text)}
+.feedbackButton svg{width:22px;height:22px}
+.homeFeedbackLink{display:block;margin:0 auto;min-height:44px;padding:8px 12px;border:0;background:transparent;color:var(--muted);font-size:13px;text-decoration:underline;text-underline-offset:4px}
+#appFeedback{box-sizing:border-box;width:min(560px,calc(100% - 24px));max-width:none;max-height:calc(100dvh - 24px);margin:auto;padding:0;border:1px solid var(--line);border-radius:24px;background:var(--panel);color:var(--text);box-shadow:0 24px 80px #0005;overflow:hidden}
+#appFeedback[open]{display:flex;flex-direction:column}
+#appFeedback::backdrop{background:#0009;backdrop-filter:blur(4px)}
+#appFeedback *{box-sizing:border-box;min-width:0}
+#appFeedback [hidden]{display:none!important}
+#appFeedback .feedbackHead{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-shrink:0;padding:12px 20px;border-bottom:1px solid var(--line)}
+#appFeedback h2{margin:0;font-size:20px;letter-spacing:-.02em}
+#appFeedback .feedbackHead button{width:44px;height:44px;padding:0;font-size:28px}
+#appFeedback .feedbackBody{padding:18px 20px 24px;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;min-height:0}
+#appFeedback .feedbackIntro{margin:0 0 16px;color:var(--muted);font-size:14px;line-height:1.7}
+#appFeedback button{min-height:44px;font:inherit;font-size:14px;line-height:1.4;border:1px solid var(--line);border-radius:12px;padding:10px 14px;background:var(--panel2,var(--panel));color:var(--text);cursor:pointer}
+#appFeedback button:disabled{opacity:.5;cursor:default}
+#appFeedback button.primary{background:var(--orange);border-color:var(--orange);color:#171717;font-weight:700}
+#appFeedback :is(button,select,textarea):focus-visible,.homeFeedbackLink:focus-visible,.feedbackButton:focus-visible{outline:3px solid var(--orange);outline-offset:3px}
+#appFeedback .feedbackTabs{display:flex;gap:6px;padding:5px;background:var(--bg);border:1px solid var(--line);border-radius:16px;margin-bottom:22px}
+#appFeedback .feedbackTabs button{flex:1;background:transparent;border-color:transparent}
+#appFeedback .feedbackTabs button[aria-pressed=true]{background:var(--panel);border-color:var(--line);color:var(--text);font-weight:700;box-shadow:0 2px 5px #0001}
+#appFeedback label{display:block;font-size:14px;font-weight:600;line-height:1.6;color:var(--text)}
+#appFeedback :is(textarea,select){display:block;width:100%;max-width:100%;margin-top:8px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--text);font:inherit;font-size:16px;font-weight:400;line-height:1.7}
+#appFeedback textarea{resize:vertical;min-height:140px}
+#appFeedback textarea::placeholder{color:var(--muted);opacity:1}
+#appFeedback .feedbackFields{display:grid;gap:16px;margin:20px 0 24px}
+#appFeedback .feedbackHelp,#appFeedback .feedbackPrivacy{color:var(--muted);font-size:12px;line-height:1.8}
+#appFeedback .feedbackPrivacy{border-top:1px solid var(--line);padding-top:16px;margin:16px 0 0}
+#appFeedback .feedbackHelp{margin:10px 0 16px}
+#appFeedback .feedbackMessage{font-size:14px;line-height:1.8;overflow-wrap:anywhere}
+#appFeedback .feedbackMessage:empty{display:none}
+#appFeedback .feedbackDraftNotice{padding:12px;border:1px solid var(--orange);border-radius:12px;font-size:14px;line-height:1.8}
+#appFeedback .feedbackWide{width:100%}
+#appFeedback .feedbackQuiet{display:block;background:transparent;border:0;color:var(--muted);text-decoration:underline;text-underline-offset:3px;margin:8px auto 0;font-size:12px}
+#appFeedback .feedbackListHead{display:grid;gap:16px}
+#appFeedback .feedbackEntry{padding:18px 0;border-top:1px solid var(--line)}
+#appFeedback .feedbackEntryMeta{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;color:var(--muted);font-size:12px;line-height:1.6}
+#appFeedback .feedbackEntryText{margin:12px 0;font-size:15px;line-height:1.8;white-space:pre-wrap;overflow-wrap:anywhere}
+#appFeedback .feedbackEntryActions,#appFeedback .feedbackActions{display:flex;gap:10px;flex-wrap:wrap}
+#appFeedback .feedbackEntryActions button{font-size:13px}
+#appFeedback .feedbackActions{margin:16px 0}
+#appFeedback .feedbackActions button{flex:1}
+#appFeedback #feedbackReportText{font-size:13px;font-family:inherit;line-height:1.7}
+@media(max-width:380px){#appRoot>header .user{gap:6px}#appRoot>header #syncState{max-width:76px;font-size:10px}#appFeedback .feedbackHead{padding:10px 16px}#appFeedback .feedbackBody{padding:16px}#appFeedback .feedbackEntryActions button{flex:1}}

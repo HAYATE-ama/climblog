@@ -1,3 +1,4 @@
+import {installUserFeedback} from './user-feedback-screen.mjs';
 import {installMainNavigation} from './main-navigation.mjs';
 import {installHomeActions} from './home-screen.mjs';
 import {installSettingsDrawer} from './settings-drawer.mjs';
@@ -141,3 +142,4 @@ installRecordDialog();installOutdoorInput();installRecordFeedback();
 installSettingsDrawer();installHomeActions();
 
 installMainNavigation();
+installUserFeedback();

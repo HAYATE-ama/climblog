@@ -4,8 +4,19 @@ import {escapeHtml as esc,stableJson} from './data-utils.mjs';
 import {restoreTrash,rollbackRecord,historyEntry} from './history-model.mjs';
 import {validateBackup,mergeBackup} from './backup-model.mjs';
 import {timerRemaining,startTimer,pauseTimer,resumeTimer} from './timer-model.mjs';
+import {accountKeys} from './account-storage.mjs';
 export function installLifeTools(){
  const api=window.climbLogStateApi,$=id=>document.getElementById(id),today=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;};
+ // The optional export must also work without the retired cloud/login module.
+ $('exportData').onclick=()=>{
+  const status=$('settingsSyncStatus');
+  try{
+   const payload={records:[],...Object.fromEntries(Object.entries(accountKeys).flatMap(([name,key])=>{const raw=localStorage.getItem(key);return raw===null?[]:[[name,JSON.parse(raw)]];}))};
+   const url=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:'application/json;charset=utf-8'})),link=document.createElement('a');
+   link.href=url;link.download='climblog-backup-'+today()+'.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+   status.textContent='記録とフィードバックのJSON書き出しを開始しました。ファイルの保存先を確認してください。';
+  }catch{status.textContent='書き出せませんでした。端末のデータは削除せず、そのままご相談ください。';}
+ };
  const historyLabels={edit:'編集',delete:'削除',restore:'ゴミ箱から復元',rollback:'履歴から復元',import:'バックアップから復元'};
  const historyTime=value=>{if(!value)return '';const time=new Date(value);return Number.isFinite(+time)?time.toLocaleString('ja-JP',{hour12:false}):String(value);};
  function dialog(id,title,body){const d=document.createElement('dialog');d.id=id;d.setAttribute('aria-labelledby',id+'Title');d.className='lifeDialog';d.innerHTML=`<div class="lifeDialogHead"><h2 id="${id}Title">${title}</h2><button type="button" data-close aria-label="閉じる">×</button></div>${body}`;d.querySelector('[data-close]').onclick=()=>d.close();document.body.append(d);return d;}
