@@ -36,6 +36,7 @@ export function installOutdoorWishlist(){
       <section data-screen="detail" hidden>
         <p class="wishLocation" data-place></p><h3 data-name></h3>
         <section class="wishMemo"><h4>前回のトライ</h4><p data-last></p><p data-memo></p></section>
+        <button type="button" data-topo aria-haspopup="dialog" aria-controls="outdoorTopo">写真・トポを見る / 追加</button>
         <button type="button" class="wishPrimary" data-log>記録する</button>
         <button type="button" class="wishRemove" data-remove>リストから外す</button>
       </section>
@@ -46,6 +47,7 @@ export function installOutdoorWishlist(){
   const form=get('form'),fields=form.elements,filter=get('[data-crag]'),status=get('.wishStatus');
   const body=get('.wishBody'),routes=get('.wishRoutes');
   let screen='list',selectedId=null,returnId=null,locked=false,listScrollTop=0,addBaseline='';
+  get('[data-topo]').onclick=()=>{const wish=wishes().find(w=>w.id===selectedId);if(wish)window.climbLogTopos.open(wish,get('[data-topo]'));};
   const addSnapshot=()=>JSON.stringify([...new FormData(form)]);
   const mayLeaveAdd=()=>screen!=='add'||addSnapshot()===addBaseline||confirm('未保存の課題があります。入力を破棄しますか？');
   const facts=()=>wishlistEntries(wishes(),records.getRecords());

@@ -1,3 +1,4 @@
+import {withTopoBackup,prepareTopoImport,putTopoPhotos} from './outdoor-topo-store.mjs';
 import {createWorkoutAudio} from './workout-audio.mjs';
 import {screenAwake,screenAwakeLabel} from './screen-awake.mjs';
 import {escapeHtml as esc,stableJson} from './data-utils.mjs';
@@ -8,14 +9,15 @@ import {accountKeys} from './account-storage.mjs';
 export function installLifeTools(){
  const api=window.climbLogStateApi,$=id=>document.getElementById(id),today=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;};
  // The optional export must also work without the retired cloud/login module.
- $('exportData').onclick=()=>{
-  const status=$('settingsSyncStatus');
+ $('exportData').onclick=async()=>{
+  const status=$('settingsSyncStatus'),owner=window.climbLogAccountId;$('exportData').disabled=true;status.textContent='写真を含むバックアップを準備しています…';
   try{
-   const payload={records:[],...Object.fromEntries(Object.entries(accountKeys).flatMap(([name,key])=>{const raw=localStorage.getItem(key);return raw===null?[]:[[name,JSON.parse(raw)]];}))};
+   let payload={records:[],...Object.fromEntries(Object.entries(accountKeys).flatMap(([name,key])=>{const raw=localStorage.getItem(key);return raw===null?[]:[[name,JSON.parse(raw)]];}))};
+   payload=await withTopoBackup(payload,owner);if(owner!==window.climbLogAccountId)throw new Error('保存先が変わりました。');
    const url=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:'application/json;charset=utf-8'})),link=document.createElement('a');
    link.href=url;link.download='climblog-backup-'+today()+'.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
-   status.textContent='記録とフィードバックのJSON書き出しを開始しました。ファイルの保存先を確認してください。';
-  }catch{status.textContent='書き出せませんでした。端末のデータは削除せず、そのままご相談ください。';}
+   status.textContent='記録・写真・フィードバックのJSON書き出しを開始しました。ファイルの保存先を確認してください。';
+  }catch(error){status.textContent='書き出せませんでした。端末のデータは保持されています。'+error.message;}finally{$('exportData').disabled=false;}
  };
  const historyLabels={edit:'編集',delete:'削除',restore:'ゴミ箱から復元',rollback:'履歴から復元',import:'バックアップから復元'};
  const historyTime=value=>{if(!value)return '';const time=new Date(value);return Number.isFinite(+time)?time.toLocaleString('ja-JP',{hour12:false}):String(value);};
@@ -33,9 +35,9 @@ export function installLifeTools(){
  function tick(){const running=timer.status==='running';if(running!==previousRestRunning){previousRestRunning=running;restAwake.setActive('rest',running);}updateRestAwake();let n=timerRemaining(timer);if(timer.status==='running'&&n===0){timer.status='done';persistTimer();$('restStatus').textContent='休憩が終わりました。自分のペースで次の一手へ。';if(timer.sound&&!restAudioScheduled)restAudio.play('complete');}$('restTime').textContent=`${Math.floor(n/60)}:${String(n%60).padStart(2,'0')}`;for(const button of document.querySelectorAll('[data-life=rest]'))button.textContent=timer.status==='running'?'休憩中 '+$('restTime').textContent:timer.status==='paused'?'休憩を再開':'休憩タイマー';$('restPause').textContent=timer.status==='paused'?'再開':'一時停止';$('restPause').disabled=!['running','paused'].includes(timer.status);}
  $('restStart').onclick=async()=>{const epoch=++restEpoch;try{if($('restSound').checked)await restAudio.enable({fresh:restAudio.status()!=='ready'});if(epoch!==restEpoch)return;timer=startTimer(timer,$('restSeconds').value);$('restStatus').textContent=$('restSound').checked&&restAudio.status()!=='ready'?'休憩中。音は再生できません。「音を確認」で再接続してください。':'休憩中';persistTimer();scheduleRestAudio();tick();}catch(e){$('restStatus').textContent=e.message;}};
  $('restPause').onclick=async()=>{const epoch=++restEpoch;if(timer.status==='paused'&&$('restSound').checked)await restAudio.enable({fresh:restAudio.status()!=='ready'});if(epoch!==restEpoch)return;timer=timer.status==='paused'?resumeTimer(timer):pauseTimer(timer);persistTimer();scheduleRestAudio();tick();};$('restReset').onclick=()=>{restEpoch++;restAudio.stop();restAudioScheduled=false;timer={status:'idle',durationSeconds:Number($('restSeconds').value)||90};persistTimer();tick();};$('restSound').onchange=async()=>{const epoch=++restEpoch;if($('restSound').checked)await restAudio.enable({fresh:restAudio.status()!=='ready'});if(epoch!==restEpoch){restAudio.stop();return;}persistTimer();scheduleRestAudio();};$('restSoundTest').onclick=async()=>{const epoch=++restEpoch;const ready=await restAudio.enable({fresh:true});if(epoch!==restEpoch){restAudio.stop();return;}if(ready)restAudio.play('complete');$('restStatus').textContent=ready?'確認音を再生しました。聞こえない場合はメディア音量と消音設定を確認してください。':'音を再生できません。端末の設定を確認してください。';if(timer.status==='running'&&$('restSound').checked){restAudioScheduled=restAudio.play('complete',timerRemaining(timer));}};timerDialog.addEventListener('click',e=>{const b=e.target.closest('[data-rest-seconds]');if(b)$('restSeconds').value=b.dataset.restSeconds;});setInterval(tick,500);tick();
- const data=dialog('dataDialog','データ管理',`<div class="studioActions"><button data-data-tab="import" type="button">JSON復元</button><button data-data-tab="trash" type="button">ゴミ箱</button><button data-data-tab="history" type="button">編集履歴</button></div><div id="dataContent"></div><p id="dataStatus" role="status"></p>`);let incoming=null,preview=null,snapshot='',importVersion=0;
+ const data=dialog('dataDialog','データ管理',`<div class="studioActions"><button data-data-tab="import" type="button">JSON復元</button><button data-data-tab="trash" type="button">ゴミ箱</button><button data-data-tab="history" type="button">編集履歴</button></div><div id="dataContent"></div><p id="dataStatus" role="status"></p>`);let incoming=null,preview=null,snapshot='',importVersion=0,incomingPhotos=new Map();
  function invalidateRestore(){
-  importVersion++;incoming=null;preview=null;snapshot='';
+  importVersion++;incoming=null;preview=null;snapshot='';incomingPhotos=new Map();
   if($('applyRestore'))$('applyRestore').disabled=true;
   if($('previewRestore'))$('previewRestore').disabled=true;
  }
@@ -47,10 +49,12 @@ export function installLifeTools(){
   const file=input.files[0];if(!file)return;
   $('restorePreview').textContent='バックアップを読み込んでいます。';
   try{
-   if(file.size>25*1024*1024)throw new Error('25MB以下のJSONを選んでください。');
+   if(file.size>100*1024*1024)throw new Error('100MB以下のJSONを選んでください。');
    const text=await file.text();
    if(version!==importVersion||!input.isConnected)return;
-   incoming=validateBackup(JSON.parse(text));
+   const raw=JSON.parse(text),validated=validateBackup(raw),photos=await prepareTopoImport(raw,window.climbLogAccountId);
+   if(version!==importVersion||!input.isConnected)return;
+   incoming=validated;incomingPhotos=photos;
    $('restorePreview').textContent=`${incoming.records.length}件の記録を読み込みました。内容を確認してください。`;
    $('previewRestore').disabled=false;
   }catch(error){
@@ -60,7 +64,11 @@ export function installLifeTools(){
   }
  };
 
- for(const id of ['restoreOverwrite','restoreSettings'])$(id).onchange=()=>{$('applyRestore').disabled=true;preview=null;};$('previewRestore').onclick=()=>{try{if(!incoming)throw new Error('JSONファイルを選んでください。');const current=api.get();snapshot=stableJson(current);preview=mergeBackup(current,incoming,{overwrite:$('restoreOverwrite').checked,settings:$('restoreSettings').checked});$('restorePreview').textContent=`追加 ${preview.count.added}項目 / 重複 ${preview.count.conflicts}項目（${$('restoreOverwrite').checked?'上書き':'現在の内容を維持'}）`;$('applyRestore').disabled=false;}catch(e){$('restorePreview').textContent=e.message;}};$('applyRestore').onclick=()=>{try{if(!incoming||!preview||snapshot!==stableJson(api.get()))throw new Error('データが変わりました。もう一度内容を確認してください。');if(!confirm('確認した内容を復元しますか？'))return;const current=api.get();if($('restoreOverwrite').checked&&preview.patch.records){const old=new Map(current.records.map(r=>[r.id,r]));preview.patch.recordHistory=[...(preview.patch.recordHistory||current.recordHistory),...preview.patch.records.filter(r=>old.has(r.id)&&stableJson(old.get(r.id))!==stableJson(r)).map(r=>historyEntry('import',old.get(r.id),r))];}api.apply(preview.patch);preview=null;$('applyRestore').disabled=true;$('dataStatus').textContent='復元しました。身体設定は設定画面を開き直すと反映されます。';}catch(e){$('dataStatus').textContent=e.message;}};return;}
+ for(const id of ['restoreOverwrite','restoreSettings'])$(id).onchange=()=>{$('applyRestore').disabled=true;preview=null;};$('previewRestore').onclick=()=>{try{if(!incoming)throw new Error('JSONファイルを選んでください。');const current=api.get();snapshot=stableJson(current);preview=mergeBackup(current,incoming,{overwrite:$('restoreOverwrite').checked,settings:$('restoreSettings').checked});$('restorePreview').textContent=`追加 ${preview.count.added}項目 / 重複 ${preview.count.conflicts}項目（${$('restoreOverwrite').checked?'上書き':'現在の内容を維持'}）`;$('applyRestore').disabled=false;}catch(e){$('restorePreview').textContent=e.message;}};$('applyRestore').onclick=async()=>{try{if(!incoming||!preview||snapshot!==stableJson(api.get()))throw new Error('データが変わりました。もう一度内容を確認してください。');if(!confirm('確認した内容を復元しますか？'))return;const version=importVersion,owner=window.climbLogAccountId,restoring=preview;
+ $('applyRestore').disabled=true;$('dataStatus').textContent='写真と記録を復元しています…';
+ await putTopoPhotos(owner,incomingPhotos);
+ if(version!==importVersion||preview!==restoring||owner!==window.climbLogAccountId||snapshot!==stableJson(api.get()))throw new Error('復元中にデータが変わりました。もう一度内容を確認してください。');
+ const current=api.get();if($('restoreOverwrite').checked&&preview.patch.records){const old=new Map(current.records.map(r=>[r.id,r]));preview.patch.recordHistory=[...(preview.patch.recordHistory||current.recordHistory),...preview.patch.records.filter(r=>old.has(r.id)&&stableJson(old.get(r.id))!==stableJson(r)).map(r=>historyEntry('import',old.get(r.id),r))];}api.apply(preview.patch);preview=null;$('applyRestore').disabled=true;$('dataStatus').textContent='復元しました。身体設定は設定画面を開き直すと反映されます。';}catch(e){$('dataStatus').textContent=e.message;}};return;}
  const rows=tab==='trash'?state.recycleBin:[...state.recordHistory].reverse();$('dataContent').innerHTML=`<h3>${tab==='trash'?'ゴミ箱':'編集履歴'}</h3><p class="sub">${tab==='trash'?'自動では削除しません。完全削除すると関連する履歴も消えます。':'「変更前に戻す」でその編集の直前の内容を復元します。'}</p><div class="dataRows">${rows.length?rows.map(row=>{const r=row.record||row.before||row.after;return `<article><strong>${esc(r?.date)} · ${esc(r?.exerciseName||r?.routeName||r?.grade||r?.place)}</strong><small>${esc(historyTime(row.deletedAt||row.changedAt))} ${esc(historyLabels[row.action]||'')}</small><p>${esc(r?.summary||r?.memo||'')}</p><div class="studioActions">${tab==='trash'?`<button type="button" data-restore-trash="${esc(row.id)}">元に戻す</button><button type="button" data-purge="${esc(row.id)}">完全削除</button>`:`<button type="button" data-rollback="${esc(row.id)}">${row.before?'変更前に戻す':'この内容を復元'}</button>`}</div></article>`;}).join(''):'<p>まだ項目はありません。</p>'}</div>`;}
  data.addEventListener('click',e=>{try{const tab=e.target.closest('[data-data-tab]');if(tab){dataTab(tab.dataset.dataTab);return;}const s=api.get(),restore=e.target.closest('[data-restore-trash]'),rollback=e.target.closest('[data-rollback]'),purge=e.target.closest('[data-purge]');if(restore){api.apply(restoreTrash(s.records,s.recycleBin,s.recordHistory,restore.dataset.restoreTrash));dataTab('trash');}if(rollback&&confirm('この履歴に保存された内容を復元しますか？現在の記録は編集履歴に残ります。')){api.apply(rollbackRecord(s.records,s.recycleBin,s.recordHistory,rollback.dataset.rollback));dataTab('history');}if(purge&&confirm('完全削除しますか？関連する編集履歴も消え、元に戻せません。')){const id=s.recycleBin.find(row=>row.id===purge.dataset.purge)?.record.id;api.apply({recycleBin:s.recycleBin.filter(row=>row.id!==purge.dataset.purge),recordHistory:s.recordHistory.filter(row=>row.recordId!==id)});dataTab('trash');}}catch(error){$('dataStatus').textContent=error.message;}});
  const tools=document.createElement('div');tools.className='lifeQuickTools';tools.innerHTML='<button type="button" data-life="journal">今日のコンディション・振り返り</button>';$('registerFromDetail').before(tools);
