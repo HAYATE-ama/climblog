@@ -101,11 +101,20 @@ body[data-theme="light"] .trainingMetrics>div{background:#f4f1f8;color:#202b3b}b
   min-inline-size: 0;
   font-size: 13px;
 }
-.dateRangeFields input[type=date] {
+/* Keep native calendar selection, but size the field itself consistently on iOS. */
+input[type=date] {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
   box-sizing: border-box;
   width: 100%;
   min-inline-size: 0;
   max-inline-size: 100%;
+  min-height: 44px;
+}
+input[type=date]::-webkit-date-and-time-value {
+  min-width: 0;
+  text-align: left;
 }
 @media (max-width: 640px) {
   .dateRangeFields { grid-template-columns: minmax(0, 1fr); }
@@ -117,4 +126,4 @@ body[data-theme="light"] .trainingMetrics>div{background:#f4f1f8;color:#202b3b}b
 .recordSearchPeriod label{color:var(--text)}
 .recordSearchPeriod input{min-height:44px;padding:8px;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:8px;font:inherit;font-size:16px}
 .recordSearchPeriod input:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
-.recordSearchPeriod p{grid-column:1 / -1;margin:0;color:var(--text)}
+.recordSearchPeriod p{margin:12px 0 0;color:var(--text)}

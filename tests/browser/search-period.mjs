@@ -5,7 +5,7 @@ import path from 'node:path';
 import http from 'node:http';
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
-const require=createRequire(import.meta.url),{chromium}=require(process.env.CLIMBLOG_PLAYWRIGHT_MODULE||'playwright');
+const require=createRequire(import.meta.url),engines=require(process.env.CLIMBLOG_PLAYWRIGHT_MODULE||'playwright'),engine=process.env.CLIMBLOG_BROWSER_ENGINE||'chromium';
 const root=process.cwd(),resultDir=fs.mkdtempSync(path.join(os.tmpdir(),'climblog-ui-'));console.log('Test artifacts: '+resultDir);
 const bootstrap=`
 window.climbLogAccountId='dashboard-test';
@@ -23,12 +23,13 @@ const server=http.createServer((req,res)=>{
 });
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const origin=`http://127.0.0.1:${server.address().port}`;let browser;const report=[];
 try{
- browser=await chromium.launch({executablePath:process.env.CLIMBLOG_BROWSER||'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true});
+ browser=await engines[engine].launch({...(engine==='chromium'?{executablePath:process.env.CLIMBLOG_BROWSER||'C:/Program Files/Google/Chrome/Application/chrome.exe'}:{}),headless:true});
  for(const viewport of [{width:320,height:740},{width:390,height:844},{width:1280,height:1000}]){
   const context=await browser.newContext({viewport});await context.route('**/*',route=>route.request().url().startsWith(origin)?route.continue():route.abort());const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto(origin+'/test.html');await page.waitForFunction(()=>window.__appReady);
   await page.evaluate(()=>window.climbLogStateApi.apply({records:Array.from({length:35},(_,i)=>({id:'period-'+i,date:i<32?'2026-10-15':'2026-11-01',kind:i===34?'outdoor':'gym',place:'テスト岩場',grade:'5級',sends:1}))}));
   const snapshot=await page.evaluate(()=>JSON.stringify(window.climbLogStateApi.get()));
   await page.locator('#calendarTab').click();await page.locator('.searchCard').scrollIntoViewIfNeeded();
+  await checkDateRangeLayout(page.locator('.recordSearchPeriod'),viewport.width<=640);
   assert.match(await page.locator('#recordSearchCount').innerText(),/35件中 30件/);
   await page.locator('#recordSearchMore').click();assert.equal(await page.locator('.searchResult').count(),35);
   await page.locator('#recordSearchFrom').fill('2026-11-01');assert.equal(await page.locator('.searchResult').count(),3);
