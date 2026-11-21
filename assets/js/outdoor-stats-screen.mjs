@@ -1,3 +1,4 @@
+import {toyotaGradeSystem} from './outdoor-grades.mjs';
 import {buildOutdoorCharts,chartCeiling} from './outdoor-stats-model.mjs';
 import {escapeHtml as esc} from './data-utils.mjs';
 
@@ -47,7 +48,7 @@ export function installOutdoorStats({selectRecords,viewRecord}){
  function draw(){
   if(!model)return;
   for(const button of root.querySelectorAll('[data-outdoor-chart]'))button.setAttribute('aria-selected',String(button.dataset.outdoorChart===view));
-  $('outdoorChartPanel').setAttribute('aria-labelledby','outdoorTab-'+view);$('outdoorChartTitle').textContent=titles[view];
+  $('outdoorChartPanel').setAttribute('aria-labelledby','outdoorTab-'+view);$('outdoorChartTitle').textContent=view==='grades'&&model.systems.length===1&&JSON.parse(model.systems[0])[1]===toyotaGradeSystem?'豊田式の完登':titles[view];
   $('outdoorChartScaleWrap').hidden=view!=='grades'||model.systems.length<2;
   $('outdoorChartScale').innerHTML=model.systems.map(s=>`<option value="${esc(s)}">${esc(groupLabel(s))}</option>`).join('');$('outdoorChartScale').value=scale;
   let html='',paging='';
@@ -78,6 +79,7 @@ export function installOutdoorStats({selectRecords,viewRecord}){
   if(!model.systems.includes(scale))scale=model.systems[0]||'';
   const d=data.extra.dan,isCurrent=today>=data.range.from&&today<=data.range.to;
   $('outdoorDanSummary').innerHTML='<div class="outdoorHeroTop"><h3>'+(isCurrent?'今シーズン':'選択シーズン')+'の新規完登</h3>'+(model.highest?'<span>最高 '+esc(model.highest)+'<small>日本・ボルダー</small></span>':'')+'</div><div class="outdoorDanTotal"><strong id="outdoorDanValue">'+d.newDan+'<small>段</small></strong><span>（再登込み'+d.totalDan+'段）</span></div><div class="outdoorHeroBottom"><span><b>'+d.newProblems+'</b>課題を新規完登</span><span>再登 <b>'+d.repeatAscents+'</b>回</span></div><details class="outdoorCounting"><summary>数え方'+(model.excluded?'・重複 '+model.excluded+'件':'')+'</summary><p>新規は同じ課題をシーズン内に1回、再登は同じ課題・同じ日を1回として集計します。同日重複は加算しません。</p><p>段数は日本のボルダーのみ。＋・−は元の段数、中間表記は0.5段です。級・他の体系・未設定グレードもグラフの完登回数には含みます。</p></details>';
+  if(model.grades.some(g=>g.system===toyotaGradeSystem))$('outdoorDanSummary').insertAdjacentHTML('beforeend','<p class="sub">豊田式の完登は段数に換算せず、グレード別グラフで表示します。</p>');
   $('outdoorAllCount').textContent=data.rows.length+'件 ›';draw();if(dialog.open)extra.hidden=filtering;
  }
  return {setActive,render,close};

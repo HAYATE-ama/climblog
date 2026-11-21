@@ -1,0 +1,11 @@
+.toyotaGradePicker[hidden],.toyotaGradePicker [hidden]{display:none!important}
+.toyotaGradePicker{margin:8px 0 16px}.toyotaGradeHelp{font-size:12px;line-height:1.6;color:var(--muted);margin:0 0 10px}
+.toyotaGradeLetters{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.toyotaGradeLetters button{min-width:0;min-height:54px;padding:8px 4px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);color:var(--text);font:600 24px/1.3 system-ui,sans-serif;cursor:pointer}
+.toyotaGradeLetters [data-toyota-grade=custom]{font-size:12px;line-height:1.5;white-space:pre-line}
+.toyotaGradeLetters button[aria-pressed=true]{background:var(--orange);border-color:var(--orange);color:#18231a}
+.toyotaGradePicker .toyotaGradeCustom{display:grid;gap:6px;margin-top:14px;font-size:13px;color:var(--muted)}
+.toyotaGradePicker input{box-sizing:border-box;min-height:44px;width:100%;font-size:16px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);color:var(--text)}
+.toyotaGradeExtras{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin-top:8px;color:var(--muted)}
+.toyotaGradeExtras button{min-height:44px;padding:6px 0;border:0;background:transparent;color:var(--muted);font:inherit;font-size:12px;text-decoration:underline;text-underline-offset:3px;cursor:pointer}.toyotaGradeExtras small{font-size:11px}
+.toyotaGradePicker :focus-visible{outline:3px solid var(--orange);outline-offset:3px}

@@ -1,3 +1,4 @@
+import {validateOutdoorGradeFormats} from './outdoor-grades.mjs';
 import {validateTopos,topoLinkKey} from './outdoor-topo-model.mjs';
 import {validateFeedbackEntries} from './user-feedback-model.mjs';
 import {validateWish} from './outdoor-wishlist-model.mjs';
@@ -58,6 +59,7 @@ const recordValid=row=>{if(row?.ascentType!=null&&!['new','repeat'].includes(row
  for(const row of value.workoutReceipts||[])if(row.circuitSession){const s=parseCircuitDraft(JSON.stringify(row.circuitSession));if(row.id!=='circuit-'+s.id||row.date!==s.date||(s.timing&&!s.timing.ended)||JSON.stringify(row.recordIds)!==JSON.stringify(circuitRecords(s).map(r=>r.id)))throw new Error('サーキットの保存履歴を確認してください。');}
  for(const row of value.recycleBin||[])recordValid(row.record);
  for(const row of value.recordHistory||[]){if(!idValid(row.recordId)||!row.before&&!row.after)throw new Error('編集履歴の形式が不正です。');for(const r of [row.before,row.after])if(r){recordValid(r);if(r.id!==row.recordId)throw new Error('編集履歴のIDが一致しません。');}}
+ if(value.preferences?.outdoorGradeFormats!=null)validateOutdoorGradeFormats(value.preferences.outdoorGradeFormats);
  if(value.preferences?.outdoorSeason!=null)validateOutdoorSeason(value.preferences.outdoorSeason);
  for(const key of ['goals','preferences','bodyProfile'])if(value[key]!=null&&(typeof value[key]!=='object'||Array.isArray(value[key])))throw new Error(key+'の形式が不正です。');
  if(value.preferences?.outdoorPlanning!=null)validateOutdoorSettings(value.preferences.outdoorPlanning);

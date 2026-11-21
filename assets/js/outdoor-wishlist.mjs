@@ -1,3 +1,5 @@
+import {installOutdoorGradePicker} from './outdoor-grade-picker.mjs';
+import {preferredOutdoorSystem,withOutdoorGradeFormat} from './outdoor-grades.mjs';
 import {readCollection} from './account-storage.mjs';
 import {outdoorProblemKey} from './outdoor-season.mjs';
 import {addOutdoorWish,wishlistEntries} from './outdoor-wishlist-model.mjs';
@@ -48,6 +50,7 @@ export function installOutdoorWishlist(){
   const body=get('.wishBody'),routes=get('.wishRoutes');
   let screen='list',selectedId=null,returnId=null,locked=false,listScrollTop=0,addBaseline='';
   get('[data-topo]').onclick=()=>{const wish=wishes().find(w=>w.id===selectedId);if(wish)window.climbLogTopos.open(wish,get('[data-topo]'));};
+  const gradePicker=installOutdoorGradePicker({select:fields.outdoorGrade,system:fields.gradeSystem,discipline:fields.discipline,crag:fields.cragName,setSystem:selected=>{fields.gradeSystem.value=selected;setGrades();},getPreferences:()=>window.climbLogStateApi.get().preferences});
   const addSnapshot=()=>JSON.stringify([...new FormData(form)]);
   const mayLeaveAdd=()=>screen!=='add'||addSnapshot()===addBaseline||confirm('未保存の課題があります。入力を破棄しますか？');
   const facts=()=>wishlistEntries(wishes(),records.getRecords());
@@ -131,10 +134,10 @@ export function installOutdoorWishlist(){
     });
   }
   function setGrades(){
-    fields.outdoorGrade.replaceChildren(new Option('未設定',''),...records.gradeOptionsFor(fields.discipline.value,fields.gradeSystem.value).map(v=>new Option(v,v)));
+    fields.outdoorGrade.replaceChildren(new Option('未設定',''),...records.gradeOptionsFor(fields.discipline.value,fields.gradeSystem.value).map(v=>new Option(v,v)));gradePicker.sync({reset:true});
   }
   function setSystems(){
-    fields.gradeSystem.replaceChildren(...records.gradeSystemsFor(fields.discipline.value).map(v=>new Option(v,v)));setGrades();
+    fields.gradeSystem.replaceChildren(...records.gradeSystemsFor(fields.discipline.value).map(v=>new Option(v,v)));fields.gradeSystem.value=preferredOutdoorSystem(fields.cragName.value,fields.discipline.value,window.climbLogStateApi.get().preferences);setGrades();gradePicker.reset();
   }
   function beginAdd(){
     selectedId=null;form.reset();form.querySelector('details').open=false;fields.cragName.value=filter.value;
@@ -165,7 +168,7 @@ export function installOutdoorWishlist(){
     event.preventDefault();
     try{
       const next=addOutdoorWish(wishes(),Object.fromEntries(new FormData(form)));
-      write(next);show('list');drawList(next.at(-1).cragName);
+      window.climbLogStateApi.apply({outdoorWishlist:next,preferences:withOutdoorGradeFormat(window.climbLogStateApi.get().preferences,next.at(-1))});show('list');drawList(next.at(-1).cragName);
       if(facts().find(f=>f.wish.id===next.at(-1).id)?.done)get('[data-finished]').open=true;
       focusWish(next.at(-1).id);
       status.textContent=next.at(-1).routeName+'を追加しました。';
