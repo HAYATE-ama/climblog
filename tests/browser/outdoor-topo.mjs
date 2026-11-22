@@ -14,7 +14,7 @@ const server=http.createServer((req,res)=>{
  const file=path.resolve(root,'.'+(name==='/'?'/index.html':name));
  if(!file.startsWith(root+path.sep)||!fs.existsSync(file)||fs.statSync(file).isDirectory()){res.writeHead(404);res.end();return;}
  res.writeHead(200,{'Content-Type':/\.m?js$/.test(file)?'text/javascript':file.endsWith('.css')?'text/css':file.endsWith('.gif')?'image/gif':file.endsWith('.png')?'image/png':file.endsWith('.svg')?'image/svg+xml':'text/html'});
- res.end(name==='/config.js'?'window.CLIMBLOG_CONFIG={};':name==='/service-worker.js'?fs.readFileSync(file,'utf8').replace('climblog-shell-20261121-outdoor-topo-','climblog-shell-topo-test-'+generation+'-'):fs.readFileSync(file));
+ res.end(name==='/config.js'?'window.CLIMBLOG_CONFIG={};':name==='/service-worker.js'?fs.readFileSync(file,'utf8').replace(/climblog-shell-[^']*-/,'climblog-shell-topo-test-'+generation+'-'):fs.readFileSync(file));
 });
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
 const origin='http://127.0.0.1:'+server.address().port;
@@ -49,12 +49,17 @@ try{
   await page.screenshot({path:path.join(artifacts,width+'-'+theme+'-view.png')});
   const box=await topo.boundingBox();assert.ok(box.x>=0&&box.y>=0&&box.y+box.height<=901);assert.equal(await topo.evaluate(el=>el.scrollWidth>el.clientWidth+1),false);
   await topo.locator('[data-edit]').click();await topo.locator('[data-clear]').click();assert.equal(await topo.locator('polyline').count(),0);await topo.locator('[data-undo]').click();assert.equal(await topo.locator('polyline').count(),1);await topo.locator('[data-redo]').click();assert.equal(await topo.locator('polyline').count(),0);
-  await topo.locator('[data-cancel]').click();assert.equal(await topo.locator('polyline').count(),1);assert.deepEqual(await page.evaluate(()=>window.climbLogStateApi.get().outdoorTopos[0]),saved);
+  await topo.locator('[data-cancel]').click();await page.waitForFunction(()=>document.querySelectorAll('#outdoorTopo polyline').length===1);assert.deepEqual(await page.evaluate(()=>window.climbLogStateApi.get().outdoorTopos[0]),saved);
   await topo.locator('[data-edit]').click();await topo.locator('[data-note]').fill('編集後のメモ');await page.evaluate(()=>window.__topoQuota=true);await topo.locator('[data-save]').click();await page.waitForFunction(()=>document.querySelector('.topoMessage').textContent.includes('保存できません'));
   assert.deepEqual(await page.evaluate(()=>window.climbLogStateApi.get().outdoorTopos[0]),saved);assert.equal(await topo.locator('[data-note]').inputValue(),'編集後のメモ');
   await page.evaluate(()=>window.__topoQuota=false);await topo.locator('[data-save]').click();await page.waitForFunction(()=>window.climbLogStateApi.get().outdoorTopos[0].marks.note==='編集後のメモ');
   await topo.locator('[data-close]').click();assert.equal(await page.evaluate(()=>document.activeElement===document.querySelector('#outdoorWishlist [data-topo]')),true);
-  await page.locator('#outdoorWishlist [data-back]').click();await page.locator('[data-wish-id="wish-b"] .wishRoute').click();await page.locator('#outdoorWishlist [data-topo]').click();await topo.locator('[data-library] summary').click();await topo.locator('[data-existing]').selectOption(saved.photoId);await topo.locator('[data-reuse]').click();
+  await page.waitForFunction(()=>document.querySelector('#outdoorWishlist [data-topo] img')?.naturalWidth>0);
+  await page.locator('#outdoorWishlist [data-back]').click();
+  await page.waitForFunction(()=>document.querySelector('[data-wish-id="wish-a"] .wishThumb img')?.naturalWidth>0);
+  await page.locator('#outdoorWishlist [data-close]').click();await page.locator('#openOutdoorWishlist').click();
+  await page.waitForFunction(()=>document.querySelector('[data-wish-id="wish-a"] .wishThumb img')?.naturalWidth>0);
+  await page.locator('[data-wish-id="wish-b"] .wishRoute').click();await page.locator('#outdoorWishlist [data-topo]').click();await topo.locator('[data-library] summary').click();await topo.locator('[data-existing]').selectOption(saved.photoId);await topo.locator('[data-reuse]').click();
   await topo.locator('[data-save]').waitFor({state:'visible'});assert.equal(await topo.locator('polyline').count(),0);await topo.locator('[data-tool=start]').click();await stage.click({position:{x:190,y:140}});await topo.locator('[data-save]').click();await page.waitForFunction(()=>window.climbLogStateApi.get().outdoorTopos.length===2);
   const shared=await page.evaluate(()=>window.climbLogStateApi.get().outdoorTopos);assert.equal(shared[0].photoId,shared[1].photoId);assert.notDeepEqual(shared[0].marks,shared[1].marks);
   await topo.locator('[data-routes]').selectOption(saved.id);assert.equal(await topo.locator('#topoTitle').innerText(),problem.routeName);

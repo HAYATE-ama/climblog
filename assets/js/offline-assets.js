@@ -85,6 +85,7 @@ self.climbLogOfflineAssets=[
   "./assets/js/outdoor-grades.mjs",
   "./assets/js/outdoor-input.mjs",
   "./assets/js/outdoor-planner-model.mjs",
+  "./assets/js/outdoor-route-library.mjs",
   "./assets/js/outdoor-season.mjs",
   "./assets/js/outdoor-settings-model.mjs",
   "./assets/js/outdoor-settings.mjs",
