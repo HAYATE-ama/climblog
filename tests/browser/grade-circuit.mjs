@@ -30,7 +30,7 @@ try{
     const doAct=async a=>{await d.locator('[data-circuit="'+a+'"]').click();await p.evaluate(()=>navigator.locks.request('climbLogGradeCircuit:test-circuit',()=>{}));};
     const open=async()=>{await p.locator('#calendarTab').click();await p.locator('#calendarView [data-open-workout]').click();await p.locator('[data-workout-act=grade-circuit]').click()};
     await p.goto(url);await p.waitForFunction(()=>window.testReady);await open();
-    await d.locator('[name=total]').fill('12');await d.locator('[name=timed]').uncheck();await d.getByRole('button',{name:'サーキットを開始'}).click();
+    await d.locator('[name=total]').fill('12');await d.locator('.circuitSetupMore summary').click();await d.locator('[name=timed]').uncheck();await d.getByRole('button',{name:'サーキットを開始'}).click();
     await d.locator('[data-route-index="11"]').waitFor();assert.equal(await d.locator('[data-route-index]').count(),12);
     const tile=i=>d.locator('[data-route-index="'+i+'"]');await tile(7).click();await doAct('fall');await doAct('fall');
     await doAct('close');await p.reload();await p.waitForFunction(()=>window.testReady);await open();
